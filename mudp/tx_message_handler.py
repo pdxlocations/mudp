@@ -87,30 +87,35 @@ def get_message_id(rolling_message_id: int, max_message_id: int = 4294967295) ->
 def send_nodeinfo(**kwargs) -> None:
     """Send node information including short/long names and hardware model."""
 
+    if "node_id" not in kwargs:
+        kwargs["node_id"] = node.node_id
+    if "long_name" not in kwargs:
+        kwargs["long_name"] = node.long_name
+    if "short_name" not in kwargs:
+        kwargs["short_name"] = node.short_name
     if "hw_model" not in kwargs:
         kwargs["hw_model"] = 255
 
-    def create_nodeinfo_payload(portnum: int, **kwargs) -> bytes:
-        """Constructs a nodeinfo payload message."""
-        nodeinfo = mesh_pb2.User()
-
-        for k, v in kwargs.items():
+    def create_nodeinfo_payload(portnum: int, **fields) -> bytes:
+        nodeinfo = mesh_pb2.User(
+            hw_model=fields.pop("hw_model", 255),
+            id=fields.pop("node_id", node.node_id),
+            long_name=fields.pop("long_name", node.long_name),
+            short_name=fields.pop("short_name", node.short_name),
+        )
+        for k, v in fields.items():
             if v is not None and k in mesh_pb2.User.DESCRIPTOR.fields_by_name:
                 setattr(nodeinfo, k, v)
         return create_payload(nodeinfo, portnum, **kwargs)
 
-    publish_message(
-        create_nodeinfo_payload,
-        portnum=portnums_pb2.NODEINFO_APP,
-        node_id=node.node_id,
-        long_name=node.node_long_name,
-        short_name=node.node_short_name,
-        **kwargs,
-    )
+    publish_message(create_nodeinfo_payload, portnum=portnums_pb2.NODEINFO_APP, **kwargs)
 
 
 def send_text_message(message: str = None, **kwargs) -> None:
     """Send a text message to the specified destination."""
+
+    if "location_source" not in kwargs:
+        kwargs["location_source"] = "LOC_MANUAL"
 
     def create_text_payload(portnum: int, message: str = None, **kwargs):
         data = message.encode("utf-8")
@@ -126,7 +131,6 @@ def send_position(latitude: float = None, longitude: float = None, **kwargs) -> 
         position_fields = {
             "latitude_i": int(latitude * 1e7) if latitude is not None else None,
             "longitude_i": int(longitude * 1e7) if longitude is not None else None,
-            "location_source": "LOC_MANUAL",
             "time": int(time.time()),
         }
 

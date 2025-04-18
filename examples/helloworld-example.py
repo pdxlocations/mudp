@@ -18,8 +18,8 @@ MCAST_PORT = 4403
 
 def setup_node():
     node.node_id = "!deadbeef"
-    node.node_long_name = "UDP Test"
-    node.node_short_name = "UDP"
+    node.long_name = "UDP Test"
+    node.short_name = "UDP"
     node.channel = "LongFast"
     node.key = "1PG7OiApB1nwvP+rz05pAQ=="
     conn.setup_multicast(MCAST_GRP, MCAST_PORT)

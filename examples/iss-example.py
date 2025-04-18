@@ -7,10 +7,10 @@ from mudp import send_position, send_nodeinfo, conn, node
 
 def setup():
     node.channel = "MediumFast"
-    node.key = "AQ=="
-    node.node_id = "!1ceface1"
-    node.node_long_name = "ISS"
-    node.node_short_name = "🛰"
+    node.key = "1PG7OiApB1nwvP+rz05pAQ=="
+    node.node_id = "!b155b155"
+    node.long_name = "ISS"
+    node.short_name = "🛰"
     MCAST_GRP = "224.0.0.69"
     MCAST_PORT = 4403
     conn.setup_multicast(MCAST_GRP, MCAST_PORT)
@@ -40,6 +40,7 @@ def main():
 
     setup()
     send_nodeinfo()
+    time.sleep(3)
     last_nodeinfo_time = time.time()
     last_lat, last_lon = None, None
 
@@ -63,6 +64,7 @@ def main():
                     ground_speed=int(velocity),
                     ground_track=ground_track,
                 )
+                time.sleep(3)
                 last_lat, last_lon = lat, lon
                 if time.time() - last_nodeinfo_time > 7200:
                     send_nodeinfo()
