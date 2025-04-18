@@ -38,8 +38,12 @@ def generate_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> bytes:
     mesh_packet.to = int(destination)
     mesh_packet.want_ack = kwargs.get("want_ack", False)
     mesh_packet.channel = generate_hash(node.channel, node.key)
-    mesh_packet.hop_limit = kwargs.get("hop_limit", 3)
-    mesh_packet.hop_start = kwargs.get("hop_start", 3)
+    hop_limit = kwargs.get("hop_limit", 3)
+    hop_start = kwargs.get("hop_start", 3)
+    if hop_limit > hop_start:
+        hop_start = hop_limit
+    mesh_packet.hop_limit = hop_limit
+    mesh_packet.hop_start = hop_start
 
     if node.key == "":
         mesh_packet.decoded.CopyFrom(encoded_message)

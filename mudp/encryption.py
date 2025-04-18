@@ -88,6 +88,8 @@ def xor_hash(data: bytes) -> int:
 
 def generate_hash(name: str, key: str) -> int:
     """generate the channel number by hashing the channel name and psk"""
+    if key == "AQ==":
+        key = "1PG7OiApB1nwvP+rz05pAQ=="
     replaced_key = key.replace("-", "+").replace("_", "/")
     key_bytes = base64.b64decode(replaced_key.encode("utf-8"))
     h_name = xor_hash(bytes(name, "utf-8"))
