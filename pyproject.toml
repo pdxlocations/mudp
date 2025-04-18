@@ -1,3 +1,11 @@
+[tool.poetry]
+name = "mudp"
+version = "0.0.1"
+description = "A library for Meshtastic communication over UDP."
+authors = ["Ben Lipsey <ben@pdxlocations.com>"]
+license = "GPL-3.0-only"
+readme = "README.md"
+
 [project]
 name = "mudp"
 version = "0.0.1"
