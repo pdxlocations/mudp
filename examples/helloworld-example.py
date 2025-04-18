@@ -20,7 +20,7 @@ def setup_node():
     node.node_id = "!deadbeef"
     node.node_long_name = "UDP Test"
     node.node_short_name = "UDP"
-    node.channel = "MediumFast"
+    node.channel = "LongFast"
     node.key = "1PG7OiApB1nwvP+rz05pAQ=="
     conn.setup_multicast(MCAST_GRP, MCAST_PORT)
 
@@ -28,7 +28,7 @@ def setup_node():
 def demo_send_messages():
     send_nodeinfo()
 
-    send_text_message("hello world", to=182032979)
+    send_text_message("hello world")
 
     send_position(latitude=37.7749, longitude=-122.4194, altitude=10, precision_bits=3, ground_speed=5)
 

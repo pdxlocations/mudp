@@ -1,11 +1,10 @@
 import random
 import time
-
 from typing import Callable
+
 from meshtastic import portnums_pb2, mesh_pb2, telemetry_pb2, BROADCAST_NUM
 from mudp.encryption import generate_hash, encrypt_packet
 from mudp.singleton import conn, node
-
 
 message_id = random.getrandbits(32)
 
