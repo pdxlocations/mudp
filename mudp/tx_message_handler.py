@@ -70,7 +70,7 @@ def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
 
         conn.sendto(payload, (conn.host, conn.port))
 
-        print(f"[SENT] {payload}")
+        print(f"\n[SENT] {payload}")
 
     except Exception as e:
         print(f"Error while sending message: {e}")

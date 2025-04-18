@@ -52,7 +52,7 @@ def main():
                 if last_lat is not None and last_lon is not None:
                     ground_track = int(calculate_bearing(last_lat, last_lon, lat, lon))
 
-                print(f"[ISS] Lat: {lat:.4f}, Lon: {lon:.4f}, Alt: {alt:.2f} m, Vel: {velocity:.2f} m/s")
+                print(f"\n[ISS] Lat: {lat:.4f}, Lon: {lon:.4f}, Alt: {alt:.2f} m, Vel: {velocity:.2f} m/s")
                 if ground_track is not None:
                     print(f"      Track: {ground_track:.1f}°")
 
