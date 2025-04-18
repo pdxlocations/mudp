@@ -1,0 +1,26 @@
+[project]
+name = "mudp"
+version = "0.0.1"
+description = "This library may be useful for testing Meshtastic networks connected to an MQTT server."
+authors = [
+    {name = "Ben Lipsey",email = "ben@pdxlocations.com"}
+]
+license = "GPL-3.0-only"
+readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "meshtastic (>=2.6.0,<3.0.0)",
+    "paho-mqtt (>=2.1.0,<3.0.0)",
+    "cryptography (>=43.0.3,<44.0.0)"
+]
+
+[project.urls]
+Homepage = "https://github.com/pdxlocations/mmqtt"
+Issues = "https://github.com/pdxlocations/mmqtt/issues"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+mmqtt = "mmqtt.main:main"
