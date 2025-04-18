@@ -1,12 +1,11 @@
 import random
 
 from typing import Callable
-from meshtastic import portnums_pb2, mesh_pb2, mqtt_pb2, telemetry_pb2, BROADCAST_NUM
-from encryption import generate_hash, encrypt_packet
+from meshtastic import portnums_pb2, mesh_pb2, telemetry_pb2, BROADCAST_NUM
+from mudp.encryption import generate_hash, encrypt_packet
+from mudp.singleton import conn, node
 
-MCAST_GRP = "224.0.0.69"
-MCAST_PORT = 4403
-KEY = "1PG7OiApB1nwvP+rz05pAQ=="
+
 message_id = random.getrandbits(32)
 
 
@@ -23,11 +22,7 @@ def create_payload(data, portnum: int, bitfield: int = 1, **kwargs) -> bytes:
 def generate_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> bytes:
     """Generate the final mesh packet."""
 
-    channel_id = "MediumFast"
-    channel_key = KEY
-    node_id = "!deadbeef"
-
-    from_id = int(node_id.replace("!", ""), 16)
+    from_id = int(node.node_id.replace("!", ""), 16)
     destination = BROADCAST_NUM
 
     reserved_ids = [1, 2, 3, 4, 4294967295]
@@ -42,14 +37,14 @@ def generate_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> bytes:
     setattr(mesh_packet, "from", from_id)
     mesh_packet.to = int(destination)
     mesh_packet.want_ack = kwargs.get("want_ack", False)
-    mesh_packet.channel = generate_hash(channel_id, channel_key)
+    mesh_packet.channel = generate_hash(node.channel, node.key)
     mesh_packet.hop_limit = kwargs.get("hop_limit", 3)
     mesh_packet.hop_start = kwargs.get("hop_start", 3)
 
-    if channel_key == "":
+    if node.key == "":
         mesh_packet.decoded.CopyFrom(encoded_message)
     else:
-        mesh_packet.encrypted = encrypt_packet(channel_id, channel_key, mesh_packet, encoded_message)
+        mesh_packet.encrypted = encrypt_packet(node.channel, node.key, mesh_packet, encoded_message)
 
     return mesh_packet.SerializeToString()
 
@@ -63,9 +58,6 @@ def get_portnum_name(portnum: int) -> str:
 
 def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
     """Send a message of any type, with logging."""
-    conn = kwargs.get("conn", None)
-    if "conn" in kwargs:
-        del kwargs["conn"]
 
     try:
 
@@ -74,10 +66,10 @@ def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
 
         print(f"     To: {BROADCAST_NUM}")
         for k, v in kwargs.items():
-            if k not in ("use_config", "to") and v is not None:
+            if k not in ("use_config", "to", "channel", "key") and v is not None:
                 print(f"     {k}: {v}")
 
-        conn.sendto(payload, (MCAST_GRP, MCAST_PORT))
+        conn.sendto(payload, (conn.host, conn.port))
 
         print(f"[SENT] {payload}")
 
@@ -93,26 +85,36 @@ def get_message_id(rolling_message_id: int, max_message_id: int = 4294967295) ->
     return message_id
 
 
-def send_nodeinfo(id: int = None, long_name: str = None, short_name: str = None, **kwargs) -> None:
+def send_nodeinfo(**kwargs) -> None:
     """Send node information including short/long names and hardware model."""
 
     if "hw_model" not in kwargs:
         kwargs["hw_model"] = 255
 
-    def create_nodeinfo_payload(portnum: int, **_):
+    def create_nodeinfo_payload(portnum: int, **kwargs) -> bytes:
+        """Constructs a nodeinfo payload message."""
+        nodeinfo = mesh_pb2.User()
 
-        nodeinfo_fields = {
-            "id": id if id is not None else None,
-            "long_name": long_name if long_name is not None else None,
-            "short_name": short_name if short_name is not None else None,
-        }
-        # Filter out None values and remove keys we've already handled
-        reserved_keys = {"node_id", "long_name", "short_name", "conn"}
-        data = {k: v for k, v in kwargs.items() if v is not None and k not in reserved_keys}
-        nodeinfo_fields.update(data)
-
-        return create_payload(mesh_pb2.User(**nodeinfo_fields), portnum)
+        for k, v in kwargs.items():
+            if v is not None and k in mesh_pb2.User.DESCRIPTOR.fields_by_name:
+                setattr(nodeinfo, k, v)
+        return create_payload(nodeinfo, portnum, **kwargs)
 
     publish_message(
-        create_nodeinfo_payload, portnums_pb2.NODEINFO_APP, id=id, long_name=long_name, short_name=short_name, **kwargs
+        create_nodeinfo_payload,
+        portnum=portnums_pb2.NODEINFO_APP,
+        node_id=node.node_id,
+        long_name=node.node_long_name,
+        short_name=node.node_short_name,
+        **kwargs,
     )
+
+
+def send_text_message(message: str = None, **kwargs) -> None:
+    """Send a text message to the specified destination."""
+
+    def create_text_payload(portnum: int, message: str = None, **kwargs):
+        data = message.encode("utf-8")
+        return create_payload(data, portnum, **kwargs)
+
+    publish_message(create_text_payload, portnums_pb2.TEXT_MESSAGE_APP, message=message, **kwargs)
