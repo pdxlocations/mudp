@@ -25,7 +25,7 @@ def listen_for_packets(MCAST_GRP, MCAST_PORT, KEY) -> None:
                     print("*** [RX] Failed to decrypt message — decoded_data is None")
 
             if mp.HasField("encrypted") and not mp.HasField("decoded"):
-                decrypt_packet(mp)
+                decrypt_packet(mp, KEY)
 
             portNumInt = mp.decoded.portnum if mp.HasField("decoded") else None
             handler = protocols.get(portNumInt) if portNumInt else None
