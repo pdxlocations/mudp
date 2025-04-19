@@ -1,6 +1,7 @@
 from mudp import (
     conn,
     node,
+    listen_for_packets,
     send_nodeinfo,
     send_text_message,
     send_device_telemetry,
@@ -21,7 +22,7 @@ def setup_node():
     node.long_name = "UDP Test"
     node.short_name = "UDP"
     node.channel = "LongFast"
-    node.key = "1PG7OiApB1nwvP+rz05pAQ=="
+    node.key = "AQ=="
     conn.setup_multicast(MCAST_GRP, MCAST_PORT)
 
 
@@ -54,31 +55,10 @@ def demo_send_messages():
     )
 
 
-def listen_for_packets():
-    print(f"Listening for UDP multicast packets on {MCAST_GRP}:{MCAST_PORT}...\n")
-    while True:
-        data, addr = conn.recvfrom(65535)
-
-        try:
-            mp = mesh_pb2.MeshPacket()
-            mp.ParseFromString(data)
-
-            if mp.HasField("encrypted") and not mp.HasField("decoded"):
-                decoded_data = decrypt_packet(mp, node.key)
-                if decoded_data is not None:
-                    mp.decoded.CopyFrom(decoded_data)
-                else:
-                    print("*** [RX] Failed to decrypt message — decoded_data is None")
-
-            print(f"[RECV from {addr}]\n{mp}")
-        except DecodeError:
-            print(f"[RECV from {addr}] Failed to decode protobuf")
-
-
 def main():
     setup_node()
     demo_send_messages()
-    listen_for_packets()
+    listen_for_packets(MCAST_GRP, MCAST_PORT, node.key)
 
 
 if __name__ == "__main__":
