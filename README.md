@@ -37,13 +37,13 @@ node.channel = "LongFast"
 node.key = "1PG7OiApB1nwvP+rz05pAQ=="
 conn.setup_multicast(MCAST_GRP, MCAST_PORT)
 
-send_nodeinfo()
-send_device_telemetry(*keywords*)
-send_position(latitude, longitude, _keywords_)
-send_environment_metrics(_keywords_)
-send_power_metrics(_keywords_)
-send_health_metrics(_keywords_)
-send_text_message("text", _keywords_)
+send_nodeinfo(keys=values...)
+send_device_telemetry(keys=values...)
+send_position(latitude, longitude, keys=values...)
+send_environment_metrics(keys=values...)
+send_power_metrics(keys=values...)
+send_health_metrics(keys=values...)
+send_text_message("text", keys=values...)
 ```
 
 Optional Arguments for all message types:
