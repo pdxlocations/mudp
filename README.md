@@ -6,6 +6,12 @@ This library provides UDP-based broadcasting of Meshtastic-compatible packets.
 pip install mudp
 ```
 
+# Command Line
+
+To view all Meshtastic udp activity on your LAN:
+```bash
+mudp
+```
 
 # Functions (see examples for further information):
 
