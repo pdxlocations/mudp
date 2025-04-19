@@ -9,8 +9,7 @@ from mudp import (
     send_environment_metrics,
     send_power_metrics,
 )
-from meshtastic import mesh_pb2
-from google.protobuf.message import DecodeError
+
 from mudp import decrypt_packet
 
 MCAST_GRP = "224.0.0.69"
