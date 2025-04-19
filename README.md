@@ -38,7 +38,7 @@ node.key = "1PG7OiApB1nwvP+rz05pAQ=="
 conn.setup_multicast(MCAST_GRP, MCAST_PORT)
 
 send_nodeinfo()
-send_device_telemetry(_keywords_)
+send_device_telemetry(*keywords*)
 send_position(latitude, longitude, _keywords_)
 send_environment_metrics(_keywords_)
 send_power_metrics(_keywords_)
