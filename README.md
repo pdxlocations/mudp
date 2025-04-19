@@ -50,7 +50,7 @@ Optional Arguments for all message types:
 
 Example:
 ```python
-send_text_message("Happy New Year" to=12345678, hop_limit=5, hop_start=5)
+send_text_message("Happy New Year" to=12345678, hop_limit=5)
 ```
 
 Supported keyword arguments for nodeinfo:
