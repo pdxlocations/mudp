@@ -1,3 +1,4 @@
+import time
 from mudp import (
     conn,
     node,
@@ -9,8 +10,6 @@ from mudp import (
     send_environment_metrics,
     send_power_metrics,
 )
-
-from mudp import decrypt_packet
 
 MCAST_GRP = "224.0.0.69"
 MCAST_PORT = 4403
@@ -26,13 +25,18 @@ def setup_node():
 
 
 def demo_send_messages():
+
     send_nodeinfo()
+    time.sleep(3)
 
     send_text_message("hello world")
+    time.sleep(3)
 
     send_position(latitude=37.7749, longitude=-122.4194, altitude=10, precision_bits=3, ground_speed=5)
+    time.sleep(3)
 
     send_device_telemetry(battery_level=50, voltage=3.7, channel_utilization=25, air_util_tx=15, uptime_seconds=123456)
+    time.sleep(3)
 
     send_environment_metrics(
         temperature=23.072298,
@@ -43,6 +47,7 @@ def demo_send_messages():
         current=-29.3,
         iaq=66,
     )
+    time.sleep(3)
 
     send_power_metrics(
         ch1_voltage=18.744,
@@ -52,6 +57,7 @@ def demo_send_messages():
         ch3_voltage=0,
         ch3_current=0,
     )
+    time.sleep(3)
 
 
 def main():
