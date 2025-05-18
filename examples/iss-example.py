@@ -24,7 +24,7 @@ def get_iss_location():
         return data["latitude"], data["longitude"], data["altitude"] * 1000, data["velocity"]
     except Exception as e:
         print(f"[ERROR] Failed to fetch ISS location: {e}")
-        return None, None, None
+        return None, None, None, None
 
 
 def calculate_bearing(lat1, lon1, lat2, lon2):
