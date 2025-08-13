@@ -32,9 +32,13 @@ def decrypt_packet(mp: mesh_pb2.MeshPacket, key: str) -> mesh_pb2.Data | None:
         decrypted_bytes = decryptor.update(getattr(mp, "encrypted")) + decryptor.finalize()
 
         # Parse the decrypted bytes into a Data object
-        data = mesh_pb2.Data()
-        data.ParseFromString(decrypted_bytes)
-        return data
+        try:
+            data = mesh_pb2.Data()
+            data.ParseFromString(decrypted_bytes)
+            return data
+        except Exception as e:
+            print(f"Failed to parse Data protobuf: {e}")
+            return None
 
     except Exception as e:
         print(f"Failed to decrypt: {e}")
