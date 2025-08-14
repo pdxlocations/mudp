@@ -141,26 +141,25 @@ class UDPPacketStream:
                     r, _, _ = select.select([self._sock], [], [], self.select_timeout)
                     if not r:
                         continue
-                    raw, _addr = self._sock.recvfrom(self.recv_buf)  # unpack here
+                    raw, _addr = self._sock.recvfrom(self.recv_buf)
                 else:
-                    raw, _addr = conn.recvfrom(self.recv_buf)  # unpack here
+                    raw, _addr = conn.recvfrom(self.recv_buf)
 
-                pub.sendMessage("mesh.rx.raw", data=raw)  # only send the raw bytes
+                pub.sendMessage("mesh.rx.raw", data=raw, addr=_addr)
 
                 mp = _decode_and_optionally_parse(raw, self.key, parse_payload=self.parse_payload)
                 if mp is None:
-                    pub.sendMessage("mesh.rx.decode_error")
+                    pub.sendMessage("mesh.rx.decode_error", addr=_addr)
                     continue
 
-                # mp._src_addr = _addr  # custom attribute
-                pub.sendMessage("mesh.rx.packet", packet=mp)
+                pub.sendMessage("mesh.rx.packet", packet=mp, addr=_addr)
 
                 if mp.HasField("decoded"):
                     portnum = mp.decoded.portnum
-                    pub.sendMessage("mesh.rx.decoded", packet=mp, portnum=portnum)
-                    pub.sendMessage(f"mesh.rx.port.{portnum}", packet=mp)
+                    pub.sendMessage("mesh.rx.decoded", packet=mp, portnum=portnum, addr=_addr)
+                    pub.sendMessage(f"mesh.rx.port.{portnum}", packet=mp, addr=_addr)
                     if portnum == mesh_pb2.PortNum.TEXT_MESSAGE_APP:
-                        pub.sendMessage("mesh.rx.text", packet=mp)
+                        pub.sendMessage("mesh.rx.text", packet=mp, addr=_addr)
 
             except Exception as e:
 

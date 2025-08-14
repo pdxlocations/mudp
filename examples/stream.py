@@ -2,7 +2,8 @@ import time
 from pubsub import pub
 from google.protobuf import text_format
 
-from meshtastic.protobuf import mesh_pb2
+from meshtastic.protobuf import mesh_pb2, portnums_pb2
+from meshtastic import protocols
 from mudp import UDPPacketStream
 from mudp.singleton import conn
 
@@ -12,40 +13,47 @@ MCAST_PORT = 4403
 KEY = "AQ=="
 
 
-def on_any_packet(packet: mesh_pb2.MeshPacket):
-    """Catch-all for any packet the UDPPacketStream publishes."""
-    sender = getattr(packet, "from_", getattr(packet, "from", None))
-    port = packet.decoded.portnum if packet.HasField("decoded") else None
-    print(f"[any] id={packet.id} from={sender} to={packet.to} port={port}")
-
-
-def on_raw(data: bytes):
+def on_raw(data: bytes, addr=None):
     hex_data = " ".join(f"{b:02x}" for b in data)
-    print(f"[raw] {len(data)} bytes")
+    src = addr[0] if isinstance(addr, tuple) and len(addr) >= 1 else "unknown"
+    print(f"\n[RECV] Raw from {src} {len(data)} bytes")
     print("Hex:", hex_data)
     print(f"Bytes:", data)
 
 
-def on_recieve(packet: mesh_pb2.MeshPacket):
+def on_recieve(packet: mesh_pb2.MeshPacket, addr=None):
+    print(f"\n[RECV] Packet received from {addr}")
 
-    print("id:", packet.id)
     print("from:", getattr(packet, "from", None))
     print("to:", packet.to)
+    print("channel:", packet.channel or None)
 
     if packet.HasField("decoded"):
-        print("portnum:", packet.decoded.portnum)
+        portNumInt = packet.decoded.portnum
+        port_name = portnums_pb2.PortNum.Name(portNumInt)
+
+        print(" portnum:", port_name)
         try:
-            print("payload:", packet.decoded.payload.decode("utf-8", "ignore"))
+            print("  payload:", packet.decoded.payload.decode("utf-8", "ignore"))
         except Exception:
-            print("payload (raw bytes):", packet.decoded.payload)
-    print()
+            print("  payload (raw bytes):", packet.decoded.payload)
+    else:
+        print("  payload:", packet.encrypted)
+
+    print("id:", packet.id or None)
+    print("rx_time:", packet.rx_time or None)
+    print("rx_snr:", packet.rx_snr or None)
+    print("priority:", packet.priority or None)
+    print("rx_rssi:", packet.rx_rssi or None)
+    print("hop_start:", packet.hop_start or None)
+    print("relay_node:", packet.relay_node or None)
 
 
-def on_text_message(packet: mesh_pb2.MeshPacket):
-    print(f"{packet.decoded.payload} {getattr(packet, 'from', None)}")
+def on_text_message(packet: mesh_pb2.MeshPacket, addr=None):
+    print(f"[RECV] From: {getattr(packet, 'from', None)} Message: {packet.decoded.payload}")
 
 
-def on_node_info(packet: mesh_pb2.MeshPacket):
+def on_node_info(packet: mesh_pb2.MeshPacket, addr=None):
 
     user = mesh_pb2.User()
     payload = packet.decoded.payload  # bytes
@@ -58,7 +66,7 @@ def on_node_info(packet: mesh_pb2.MeshPacket):
         print("raw payload bytes:", payload)
         return
 
-    print(f" Node Information From IP: {getattr(packet, '_src_addr', ['N/A'])[0]}")
+    print(f"\n[RECV] Node Information From:")
     print(f"    ID: {user.id or 'N/A'}")
     print(f"    Long Name: {user.long_name or 'N/A'}")
     print(f"    Short Name: {user.short_name or 'N/A'}")
@@ -67,9 +75,9 @@ def on_node_info(packet: mesh_pb2.MeshPacket):
     print(f"    Hardware Model: {hw}")
 
 
-def on_decode_error(packet: mesh_pb2.MeshPacket):
+def on_decode_error(packet: mesh_pb2.MeshPacket, addr=None):
     sender = getattr(packet, "from_", getattr(packet, "from", None))
-    print(f"[decode_error] from {sender}")
+    print(f"\n[decode_error] from {sender}")
 
 
 def main():
