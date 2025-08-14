@@ -22,38 +22,38 @@ def on_raw(data: bytes, addr=None):
 
 def on_recieve(packet: mesh_pb2.MeshPacket, addr=None):
     print(f"\n[RECV] Packet received from {addr}")
-    print(packet)
-    # print("from:", getattr(packet, "from", None))
-    # print("to:", packet.to)
-    # print("channel:", packet.channel or None)
+    print("from:", getattr(packet, "from", None))
+    print("to:", packet.to)
+    print("channel:", packet.channel or None)
 
-    # if packet.HasField("decoded"):
-    #     port_name = portnums_pb2.PortNum.Name(packet.decoded.portnum) if packet.decoded.portnum else "N/A"
-    #     print("decoded {")
-    #     print("  portnum:", port_name)
-    #     try:
-    #         print("  payload:", packet.decoded.payload.decode("utf-8", "ignore"))
-    #     except Exception:
-    #         print("  payload (raw bytes):", packet.decoded.payload)
-    #     print("  bitfield:", packet.decoded.bitfield or None)
-    #     print("}")
-    # else:
-    #     print(f"encrypted: { {packet.encrypted} }")
+    if packet.HasField("decoded"):
+        port_name = portnums_pb2.PortNum.Name(packet.decoded.portnum) if packet.decoded.portnum else "N/A"
+        print("decoded {")
+        print("  portnum:", port_name)
+        try:
+            print("  payload:", packet.decoded.payload.decode("utf-8", "ignore"))
+        except Exception:
+            print("  payload (raw bytes):", packet.decoded.payload)
+        print("  bitfield:", packet.decoded.bitfield or None)
+        print("}")
+    else:
+        print(f"encrypted: { {packet.encrypted} }")
 
-    # print("id:", packet.id or None)
-    # print("rx_time:", packet.rx_time or None)
-    # print("rx_snr:", packet.rx_snr or None)
-    # print("hop_limit:", packet.hop_limit or None)
-    # priority_name = mesh_pb2.MeshPacket.Priority.Name(packet.priority) if packet.priority else "N/A"
-    # print("priority:", priority_name or None)
-    # print("rx_rssi:", packet.rx_rssi or None)
-    # print("hop_start:", packet.hop_start or None)
-    # print("next_hop:", packet.next_hop or None)
-    # print("relay_node:", packet.relay_node or None)
+    print("id:", packet.id or None)
+    print("rx_time:", packet.rx_time or None)
+    print("rx_snr:", packet.rx_snr or None)
+    print("hop_limit:", packet.hop_limit or None)
+    priority_name = mesh_pb2.MeshPacket.Priority.Name(packet.priority) if packet.priority else "N/A"
+    print("priority:", priority_name or None)
+    print("rx_rssi:", packet.rx_rssi or None)
+    print("hop_start:", packet.hop_start or None)
+    print("next_hop:", packet.next_hop or None)
+    print("relay_node:", packet.relay_node or None)
 
 
 def on_text_message(packet: mesh_pb2.MeshPacket, addr=None):
-    print(f"[RECV] From: {getattr(packet, 'from', None)} Message: {packet.decoded.payload}")
+    msg = packet.decoded.payload.decode("utf-8", "ignore")
+    print(f"\n[RECV] From: {getattr(packet, 'from', None)} Message: {msg}")
 
 
 def on_node_info(packet: mesh_pb2.MeshPacket, addr=None):
@@ -81,11 +81,11 @@ def on_decode_error(packet: mesh_pb2.MeshPacket, addr=None):
 
 
 def main():
-    pub.subscribe(on_raw, "mesh.rx.raw")
+    # pub.subscribe(on_raw, "mesh.rx.raw")
     pub.subscribe(on_recieve, "mesh.rx.packet")
     pub.subscribe(on_text_message, "mesh.rx.port.1")
     pub.subscribe(on_node_info, "mesh.rx.port.4")
-    pub.subscribe(on_decode_error, "mesh.rx.decode_error")
+    # pub.subscribe(on_decode_error, "mesh.rx.decode_error")
 
     interface.start()
 

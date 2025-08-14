@@ -14,7 +14,6 @@ def on_recieve(packet: mesh_pb2.MeshPacket, addr=None):
 
 
 def start() -> None:
-
     interface = UDPPacketStream(MCAST_GRP, MCAST_PORT, key=KEY)
     pub.subscribe(on_recieve, "mesh.rx.packet")
     interface.start()
