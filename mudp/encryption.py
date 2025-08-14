@@ -37,7 +37,7 @@ def decrypt_packet(mp: mesh_pb2.MeshPacket, key: str) -> mesh_pb2.Data | None:
             data.ParseFromString(decrypted_bytes)
             return data
         except Exception as e:
-            print(f"Failed to parse Data protobuf: {e}")
+            # print(f"Failed to parse Data protobuf: {e}")
             return None
 
     except Exception as e:
