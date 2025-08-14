@@ -31,18 +31,21 @@ def on_recieve(packet: mesh_pb2.MeshPacket, addr=None):
     if packet.HasField("decoded"):
         portNumInt = packet.decoded.portnum
         port_name = portnums_pb2.PortNum.Name(portNumInt)
-
-        print(" portnum:", port_name)
+        print("decoded {")
+        print("  portnum:", port_name)
         try:
             print("  payload:", packet.decoded.payload.decode("utf-8", "ignore"))
         except Exception:
             print("  payload (raw bytes):", packet.decoded.payload)
+        print("  bitfield:", packet.decoded.bitfield or None)
+        print("}")
     else:
-        print("  payload:", packet.encrypted)
+        print(f"encrypted: { {packet.encrypted} }")
 
     print("id:", packet.id or None)
     print("rx_time:", packet.rx_time or None)
     print("rx_snr:", packet.rx_snr or None)
+    print("hop_limit:", packet.hop_limit or None)
     print("priority:", packet.priority or None)
     print("rx_rssi:", packet.rx_rssi or None)
     print("hop_start:", packet.hop_start or None)

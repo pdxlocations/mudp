@@ -47,10 +47,7 @@ def listen_for_packets(MCAST_GRP, MCAST_PORT, KEY) -> None:
 
 
 def _decode_and_optionally_parse(
-    raw: bytes,
-    key: Optional[bytes] = None,
-    *,
-    parse_payload: bool = True,
+    raw: bytes, key: Optional[bytes] = None, *, parse_payload: bool = True
 ) -> Optional[mesh_pb2.MeshPacket]:
     try:
         mp = mesh_pb2.MeshPacket()
@@ -58,10 +55,11 @@ def _decode_and_optionally_parse(
 
         if mp.HasField("encrypted") and not mp.HasField("decoded"):
             decoded = decrypt_packet(mp, key)
-            if decoded is None:
-                return None
-            mp.decoded.CopyFrom(decoded)
+            if decoded is not None:
+                mp.decoded.CopyFrom(decoded)
+            # else: keep the encrypted packet as-is
 
+        # Only try to parse the payload if we actually have decoded bytes
         if parse_payload and mp.HasField("decoded"):
             portnum = mp.decoded.portnum
             handler = protocols.get(portnum) if portnum is not None else None
