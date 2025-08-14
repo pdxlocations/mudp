@@ -1,8 +1,10 @@
 import time
+from pubsub import pub
+from meshtastic.protobuf import mesh_pb2
 from mudp import (
     conn,
     node,
-    listen_for_packets,
+    UDPPacketStream,
     send_nodeinfo,
     send_text_message,
     send_device_telemetry,
@@ -13,6 +15,9 @@ from mudp import (
 
 MCAST_GRP = "224.0.0.69"
 MCAST_PORT = 4403
+KEY = "1PG7OiApB1nwvP+rz05pAQ=="
+
+interface = UDPPacketStream(MCAST_GRP, MCAST_PORT, key=KEY)
 
 
 def setup_node():
@@ -60,10 +65,24 @@ def demo_send_messages():
     time.sleep(3)
 
 
+def on_recieve(packet: mesh_pb2.MeshPacket, addr=None):
+    print(f"\n[RECV] Packet received from {addr}")
+    print(packet)
+
+
 def main():
     setup_node()
     demo_send_messages()
-    listen_for_packets(MCAST_GRP, MCAST_PORT, node.key)
+    pub.subscribe(on_recieve, "mesh.rx.packet")
+    interface.start()
+
+    try:
+        while True:
+            time.sleep(0.05)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        interface.stop()
 
 
 if __name__ == "__main__":
