@@ -1,4 +1,4 @@
-from typing import Iterable, Iterator, Optional, Set, Tuple
+from typing import Optional
 
 import threading
 import select

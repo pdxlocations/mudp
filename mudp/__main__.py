@@ -17,7 +17,7 @@ def start() -> None:
     interface = UDPPacketStream(MCAST_GRP, MCAST_PORT, key=KEY)
     pub.subscribe(on_recieve, "mesh.rx.packet")
     interface.start()
-
+    print(f"Listening for UDP multicast packets on {MCAST_GRP}:{MCAST_PORT}...")
     try:
         while True:
             time.sleep(0.05)

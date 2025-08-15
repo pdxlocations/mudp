@@ -81,11 +81,11 @@ def on_decode_error(packet: mesh_pb2.MeshPacket, addr=None):
 
 
 def main():
-    # pub.subscribe(on_raw, "mesh.rx.raw")
+    pub.subscribe(on_raw, "mesh.rx.raw")
     pub.subscribe(on_recieve, "mesh.rx.packet")
     pub.subscribe(on_text_message, "mesh.rx.port.1")
     pub.subscribe(on_node_info, "mesh.rx.port.4")
-    # pub.subscribe(on_decode_error, "mesh.rx.decode_error")
+    pub.subscribe(on_decode_error, "mesh.rx.decode_error")
 
     interface.start()
 
