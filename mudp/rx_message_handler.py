@@ -5,7 +5,7 @@ import select
 from meshtastic.protobuf import mesh_pb2
 from google.protobuf.message import DecodeError
 from pubsub import pub
-from meshtastic import protocols
+from meshtastic import protocols, portnums_pb2
 from mudp.singleton import conn
 from mudp.encryption import decrypt_packet
 
@@ -120,7 +120,7 @@ class UDPPacketStream:
                     portnum = mp.decoded.portnum
                     pub.sendMessage("mesh.rx.decoded", packet=mp, portnum=portnum, addr=_addr)
                     pub.sendMessage(f"mesh.rx.port.{portnum}", packet=mp, addr=_addr)
-                    if portnum == mesh_pb2.PortNum.TEXT_MESSAGE_APP:
+                    if portnum == portnums_pb2.PortNum.TEXT_MESSAGE_APP:
                         pub.sendMessage("mesh.rx.text", packet=mp, addr=_addr)
 
             except Exception as e:
