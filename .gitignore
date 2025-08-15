@@ -4,3 +4,4 @@ dist/
 __pycache__/
 examples/helloworld.py
 examples/break_stuff.py
+examples/packet-editor.py
