@@ -45,10 +45,10 @@ class UDPPacketStream:
     """
     Background listener that publishes:
       - 'mesh.rx.raw'(data)
-      - 'mesh.rx.decode_error'()
-      - 'mesh.rx.packet'(packet)
-      - 'mesh.rx.decoded'(packet, portnum)
-      - 'mesh.rx.port.<portnum>'(packet)  # per-port topic for easy filtering
+      - 'mesh.rx.decode_error'(addr)
+      - 'mesh.rx.packet'(packet, addr)
+      - 'mesh.rx.decoded'(packet, portnum, addr)
+      - 'mesh.rx.port.<portnum>'(packet, addr)  # per-port topic for easy filtering
     """
 
     def __init__(

@@ -23,8 +23,6 @@ When using this library as a listener, it can publish received packets to the Py
 - **mesh.rx.packet** – publishes `(packet, addr)` for all successfully parsed `MeshPacket` objects.
 - **mesh.rx.decoded** – publishes `(packet, portnum, addr)` when the decoded portion is available.
 - **mesh.rx.port.&lt;portnum&gt;** – publishes `(packet, addr)` for filtering by port number.
-- **mesh.rx.text** – publishes `(packet, addr)` for `TEXT_MESSAGE_APP` port messages.
-- **mesh.rx.listener_error** – publishes `(error)` when an exception is caught in the listener loop.
 
 # Send Functions (see examples for further information):
 
