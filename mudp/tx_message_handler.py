@@ -22,7 +22,8 @@ def create_payload(data, portnum: int, bitfield: int = 1, **kwargs) -> bytes:
 def generate_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> bytes:
     """Generate the final mesh packet."""
 
-    from_id = int(node.node_id.replace("!", ""), 16)
+    from_id_hex = kwargs.get("node_id", node.node_id)
+    from_id = int(from_id_hex.replace("!", ""), 16)
     destination = kwargs.get("to", BROADCAST_NUM)
 
     reserved_ids = [1, 2, 3, 4, 4294967295]
@@ -106,6 +107,7 @@ def send_nodeinfo(**kwargs) -> None:
             id=fields.pop("node_id", node.node_id),
             long_name=fields.pop("long_name", node.long_name),
             short_name=fields.pop("short_name", node.short_name),
+            public_key=fields.pop("public_key", node.public_key),
         )
         for k, v in fields.items():
             if v is not None and k in mesh_pb2.User.DESCRIPTOR.fields_by_name:
