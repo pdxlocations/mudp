@@ -6,6 +6,7 @@ This library provides UDP-based broadcasting of Meshtastic-compatible packets.
 pip install mudp
 ```
 
+
 # Command Line
 
 To view all Meshtastic udp activity on your LAN:
@@ -13,7 +14,19 @@ To view all Meshtastic udp activity on your LAN:
 mudp
 ```
 
-# Functions (see examples for further information):
+# PubSub RX Topics
+
+When using this library as a listener, it can publish received packets to the Python `pubsub` system. The following topics are available:
+
+- **mesh.rx.raw** – publishes `(data, addr)` with the raw UDP packet bytes and source address tuple.
+- **mesh.rx.decode_error** – publishes `(addr)` when a packet fails to decode.
+- **mesh.rx.packet** – publishes `(packet, addr)` for all successfully parsed `MeshPacket` objects.
+- **mesh.rx.decoded** – publishes `(packet, portnum, addr)` when the decoded portion is available.
+- **mesh.rx.port.&lt;portnum&gt;** – publishes `(packet, addr)` for filtering by port number.
+- **mesh.rx.text** – publishes `(packet, addr)` for `TEXT_MESSAGE_APP` port messages.
+- **mesh.rx.listener_error** – publishes `(error)` when an exception is caught in the listener loop.
+
+# Send Functions (see examples for further information):
 
 ```python
 from mudp import (
