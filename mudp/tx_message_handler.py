@@ -81,12 +81,16 @@ def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
         print(f"Error while sending message: {e}")
 
 
-def get_message_id(rolling_message_id: int, max_message_id: int = 4294967295) -> int:
-    """Increment the message ID with sequential wrapping and add a random upper bit component to prevent predictability."""
-    rolling_message_id = (rolling_message_id + 1) % (max_message_id & 0x3FF + 1)
-    random_bits = random.randint(0, (1 << 22) - 1) << 10
-    message_id = rolling_message_id | random_bits
-    return message_id
+def get_message_id(rolling_message_id: int, max_message_id: int = 0xFFFFFFFF) -> int:
+    # roll the lower 10 bits
+    window = (max_message_id & 0x3FF) + 1  # 1024 for 0xFFFFFFFF
+    next_seq = (rolling_message_id + 1) % window
+
+    # randomize the upper 22 bits
+    rand_top = random.getrandbits(22) << 10
+
+    # combine and clamp to uint32
+    return (rand_top | next_seq) & 0xFFFFFFFF
 
 
 def send_nodeinfo(**kwargs) -> None:
