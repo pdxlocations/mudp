@@ -36,6 +36,8 @@ from mudp import (
     send_position,
     send_environment_metrics,
     send_power_metrics,
+    send_health_metrics,
+    send_waypoint,
 )
 
 MCAST_GRP = "224.0.0.69"
@@ -48,14 +50,14 @@ node.channel = "LongFast"
 node.key = "1PG7OiApB1nwvP+rz05pAQ=="
 conn.setup_multicast(MCAST_GRP, MCAST_PORT)
 
+send_text_message("text", keys=values...)
 send_nodeinfo(keys=values...)
 send_device_telemetry(keys=values...)
 send_position(latitude, longitude, keys=values...)
 send_environment_metrics(keys=values...)
 send_power_metrics(keys=values...)
 send_health_metrics(keys=values...)
-send_text_message("text", keys=values...)
-```
+send_waypoint(latitude, longitude, keys=values...)
 
 Optional Arguments for all message types:
 
@@ -154,6 +156,16 @@ Supported keyword arguments for health metrics:
  - spO2
  - temperature
 
+Supported keyword arguments for waypoints:
+
+- id
+- latitude
+- longitude
+- expire
+- locked_to
+- name
+- description
+- icon
 
 
 ## Install in development (editable) mode:
