@@ -224,3 +224,26 @@ def send_health_metrics(**kwargs) -> None:
         return create_payload(data, portnum, **kwargs)
 
     publish_message(create_health_metrics_payload, portnums_pb2.TELEMETRY_APP, **kwargs)
+
+
+def send_waypoint(latitude: float = None, longitude: float = None, **kwargs) -> None:
+    """Send a waypoint with optional additional fields (e.g., name, description, icon, etc)."""
+
+    def create_waypoint_payload(portnum: int, **fields):
+        waypoint_fields = {
+            "latitude_i": int(latitude * 1e7) if latitude is not None else None,
+            "longitude_i": int(longitude * 1e7) if longitude is not None else None,
+        }
+
+        # Filter out None values and remove keys we've already handled
+        reserved_keys = {"latitude", "longitude"}
+        data = {
+            k: v
+            for k, v in fields.items()
+            if v is not None and k not in reserved_keys and k in mesh_pb2.Waypoint.DESCRIPTOR.fields_by_name
+        }
+        waypoint_fields.update(data)
+
+        return create_payload(mesh_pb2.Waypoint(**waypoint_fields), portnum, **kwargs)
+
+    publish_message(create_waypoint_payload, portnums_pb2.WAYPOINT_APP, **kwargs)
