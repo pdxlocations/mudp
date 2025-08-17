@@ -9,13 +9,13 @@ from mudp.singleton import conn, node
 message_id = random.getrandbits(32)
 
 
-def create_payload(data, portnum: int, bitfield: int = 1, **kwargs) -> bytes:
+def create_payload(data, portnum: int, **kwargs) -> bytes:
     """Generalized function to create a payload."""
     encoded_message = mesh_pb2.Data()
     encoded_message.portnum = portnum
     encoded_message.payload = data.SerializeToString() if hasattr(data, "SerializeToString") else data
     encoded_message.want_response = kwargs.get("want_response", False)
-    encoded_message.bitfield = bitfield
+    encoded_message.bitfield = kwargs.get("bitfield", 1)
     return generate_mesh_packet(encoded_message, **kwargs)
 
 
@@ -96,14 +96,14 @@ def get_message_id(rolling_message_id: int, max_message_id: int = 0xFFFFFFFF) ->
 def send_nodeinfo(**kwargs) -> None:
     """Send node information including short/long names and hardware model."""
 
-    if "node_id" not in kwargs:
-        kwargs["node_id"] = node.node_id
-    if "long_name" not in kwargs:
-        kwargs["long_name"] = node.long_name
-    if "short_name" not in kwargs:
-        kwargs["short_name"] = node.short_name
-    if "hw_model" not in kwargs:
-        kwargs["hw_model"] = 255
+    if node.node_id is "":
+        if "node_id" not in kwargs:
+            raise ValueError("node_id is required if no node object is provided")
+
+    kwargs.setdefault("node_id", node.node_id)
+    kwargs.setdefault("long_name", node.long_name)
+    kwargs.setdefault("short_name", node.short_name)
+    kwargs.setdefault("hw_model", node.hw_model)
 
     def create_nodeinfo_payload(portnum: int, **fields) -> bytes:
         nodeinfo = mesh_pb2.User(
