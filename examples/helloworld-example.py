@@ -1,4 +1,5 @@
 import time
+import random
 from pubsub import pub
 from meshtastic.protobuf import mesh_pb2
 from mudp import (
@@ -11,6 +12,7 @@ from mudp import (
     send_position,
     send_environment_metrics,
     send_power_metrics,
+    send_waypoint,
 )
 
 MCAST_GRP = "224.0.0.69"
@@ -64,6 +66,17 @@ def demo_send_messages():
     )
     time.sleep(3)
 
+    send_waypoint(
+        id=random.randint(1, 2**32 - 1),
+        latitude=45.271394,
+        longitude=-121.736083,
+        expire=0,
+        locked_to=int(node.node_id.replace("!", ""), 16),
+        name="Camp",
+        description="Main campsite near the lake",
+        icon=0x1F3D5,  # 🏕
+    )
+
 
 def on_recieve(packet: mesh_pb2.MeshPacket, addr=None):
     print(f"\n[RECV] Packet received from {addr}")
@@ -73,6 +86,7 @@ def on_recieve(packet: mesh_pb2.MeshPacket, addr=None):
 def main():
     setup_node()
     demo_send_messages()
+
     pub.subscribe(on_recieve, "mesh.rx.packet")
     interface.start()
 
