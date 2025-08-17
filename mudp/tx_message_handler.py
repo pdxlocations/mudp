@@ -96,7 +96,7 @@ def get_message_id(rolling_message_id: int, max_message_id: int = 0xFFFFFFFF) ->
 def send_nodeinfo(**kwargs) -> None:
     """Send node information including short/long names and hardware model."""
 
-    if node.node_id is "":
+    if node.node_id == "":
         if "node_id" not in kwargs:
             raise ValueError("node_id is required if no node object is provided")
 
@@ -124,9 +124,6 @@ def send_nodeinfo(**kwargs) -> None:
 def send_text_message(message: str = None, **kwargs) -> None:
     """Send a text message to the specified destination."""
 
-    if "location_source" not in kwargs:
-        kwargs["location_source"] = "LOC_MANUAL"
-
     def create_text_payload(portnum: int, message: str = None, **kwargs):
         data = message.encode("utf-8")
         return create_payload(data, portnum, **kwargs)
@@ -137,8 +134,7 @@ def send_text_message(message: str = None, **kwargs) -> None:
 def send_position(latitude: float = None, longitude: float = None, **kwargs) -> None:
     """Send current position with optional additional fields (e.g., ground_speed, fix_type, etc)."""
 
-    if "location_source" not in kwargs:
-        kwargs["location_source"] = "LOC_MANUAL"
+    kwargs.setdefault("location_source", "LOC_MANUAL")
 
     def create_position_payload(portnum: int, **fields):
         position_fields = {
