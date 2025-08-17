@@ -96,29 +96,36 @@ def get_message_id(rolling_message_id: int, max_message_id: int = 0xFFFFFFFF) ->
 def send_nodeinfo(**kwargs) -> None:
     """Send node information including short/long names and hardware model."""
 
-    if node.node_id == "":
-        if "node_id" not in kwargs:
-            raise ValueError("node_id is required if no node object is provided")
+    if node is None and "node_id" not in kwargs:
+        raise ValueError("node_id is required if no node object is provided")
 
-    kwargs.setdefault("node_id", node.node_id)
-    kwargs.setdefault("long_name", node.long_name)
-    kwargs.setdefault("short_name", node.short_name)
-    kwargs.setdefault("hw_model", node.hw_model)
+    kwargs.setdefault("node_id", getattr(node, "node_id", ""))
+    kwargs.setdefault("long_name", getattr(node, "long_name", "Unknown"))
+    kwargs.setdefault("short_name", getattr(node, "short_name", "??"))
+    kwargs.setdefault("hw_model", getattr(node, "hw_model", 255))
+    kwargs.setdefault("public_key", getattr(node, "public_key", b""))
+
+    if kwargs.get("public_key") == b"":
+        kwargs["public_key"] = None
 
     def create_nodeinfo_payload(portnum: int, **fields) -> bytes:
         nodeinfo = mesh_pb2.User(
-            hw_model=fields.pop("hw_model", 255),
-            id=fields.pop("node_id", node.node_id),
-            long_name=fields.pop("long_name", node.long_name),
-            short_name=fields.pop("short_name", node.short_name),
-            public_key=fields.pop("public_key", node.public_key),
+            hw_model=fields.pop("hw_model"),
+            id=fields.pop("node_id"),
+            long_name=fields.pop("long_name"),
+            short_name=fields.pop("short_name"),
+            public_key=fields.pop("public_key"),
         )
         for k, v in fields.items():
             if v is not None and k in mesh_pb2.User.DESCRIPTOR.fields_by_name:
                 setattr(nodeinfo, k, v)
         return create_payload(nodeinfo, portnum, **kwargs)
 
-    publish_message(create_nodeinfo_payload, portnum=portnums_pb2.NODEINFO_APP, **kwargs)
+    publish_message(
+        create_nodeinfo_payload,
+        portnum=portnums_pb2.NODEINFO_APP,
+        **kwargs,
+    )
 
 
 def send_text_message(message: str = None, **kwargs) -> None:
@@ -195,7 +202,6 @@ def send_environment_metrics(**kwargs) -> None:
     """Send environment metrics including temperature, humidity, pressure, and gas resistance."""
 
     def create_environment_metrics_payload(portnum: int, **_):
-        # Filter out None values from kwargs
         metrics_kwargs = {
             k: v
             for k, v in kwargs.items()
