@@ -1,6 +1,6 @@
 [project]
 name = "mudp"
-version = "1.0.0a6"
+version = "1.0.0a7"
 description = "A library for Meshtastic communication over UDP."
 authors = [
     {name = "Ben Lipsey",email = "ben@pdxlocations.com"}
