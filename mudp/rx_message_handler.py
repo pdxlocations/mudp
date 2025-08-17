@@ -2,10 +2,11 @@ from typing import Optional
 
 import threading
 import select
-from meshtastic.protobuf import mesh_pb2
 from google.protobuf.message import DecodeError
 from pubsub import pub
-from meshtastic import protocols, portnums_pb2
+
+from meshtastic import protocols
+from meshtastic.protobuf import portnums_pb2, mesh_pb2
 from mudp.singleton import conn
 from mudp.encryption import decrypt_packet
 
@@ -23,7 +24,6 @@ def _decode_and_optionally_parse(
                 mp.decoded.CopyFrom(decoded)
             # else: keep the encrypted packet as-is
 
-        # Only try to parse the payload if we actually have decoded bytes
         if parse_payload and mp.HasField("decoded"):
             portnum = mp.decoded.portnum
             handler = protocols.get(portnum) if portnum is not None else None
@@ -124,5 +124,4 @@ class UDPPacketStream:
                         pub.sendMessage("mesh.rx.text", packet=mp, addr=_addr)
 
             except Exception as e:
-
                 pub.sendMessage("mesh.rx.listener_error", error=e)
