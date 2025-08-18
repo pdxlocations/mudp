@@ -71,7 +71,7 @@ def demo_send_messages():
         latitude=45.271394,
         longitude=-121.736083,
         expire=0,
-        locked_to=int(node.node_id.replace("!", ""), 16),
+        locked_to=node.node_id,
         name="Camp",
         description="Main campsite near the lake",
         icon=0x1F3D5,  # 🏕

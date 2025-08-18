@@ -229,6 +229,14 @@ def send_health_metrics(**kwargs) -> None:
 def send_waypoint(latitude: float = None, longitude: float = None, **kwargs) -> None:
     """Send a waypoint with optional additional fields (e.g., name, description, icon, etc)."""
 
+    if "locked_to" in kwargs:
+        if isinstance(kwargs["locked_to"], str):
+            kwargs["locked_to"] = int(kwargs["locked_to"].replace("!", ""), 16)
+        elif isinstance(kwargs["locked_to"], int):
+            kwargs["locked_to"] = kwargs["locked_to"]
+        else:
+            kwargs.pop("locked_to")
+
     def create_waypoint_payload(portnum: int, **fields):
         waypoint_fields = {
             "latitude_i": int(latitude * 1e7) if latitude is not None else None,
