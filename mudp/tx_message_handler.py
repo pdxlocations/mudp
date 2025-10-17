@@ -80,25 +80,13 @@ def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
     except Exception as e:
         print(f"Error while sending message: {e}")
 
-def create_data_payload(portnum: int, **kwargs):
-    """Create a data payload for raw data transmission."""
-    data = mesh_pb2.Data()
-    data.portnum = portnum
-    data.payload = kwargs["payload"]
-    return generate_mesh_packet(
-        data,
-        to=kwargs["to"],
-        want_ack=kwargs.get("want_ack", False)
-    )
-
 def send_data(destination_id: str, payload: bytes, portnum: int = 256, want_ack: bool = False):
     """Send raw data to a specified destination node ID."""
-    from .singleton import conn, node
     publish_message(
-        create_data_payload,
+        create_payload,
         portnum=portnum,
         to=int(destination_id.replace("!", ""), 16),
-        payload=payload,
+        data=payload,
         want_ack=want_ack
     )
 
