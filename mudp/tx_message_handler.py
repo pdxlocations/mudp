@@ -80,6 +80,15 @@ def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
     except Exception as e:
         print(f"Error while sending message: {e}")
 
+def send_data(destination_id: str, payload: bytes, portnum: int = 256, want_ack: bool = False):
+    """Send raw data to a specified destination node ID."""
+    publish_message(
+        create_payload,
+        portnum=portnum,
+        to=int(destination_id.replace("!", ""), 16),
+        data=payload,
+        want_ack=want_ack
+    )
 
 def get_message_id(rolling_message_id: int, max_message_id: int = 4294967295) -> int:
     """Increment the message ID with sequential wrapping and add a random upper bit component to prevent predictability."""
@@ -122,7 +131,6 @@ def send_nodeinfo(**kwargs) -> None:
         portnum=portnums_pb2.NODEINFO_APP,
         **kwargs,
     )
-
 
 def send_text_message(message: str = None, **kwargs) -> None:
     """Send a text message to the specified destination."""
