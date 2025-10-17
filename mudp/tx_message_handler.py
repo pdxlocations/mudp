@@ -123,6 +123,33 @@ def send_nodeinfo(**kwargs) -> None:
         **kwargs,
     )
 
+def send_data(destination_id: str, payload: bytes, portnum: int = 64, want_ack: bool = False):
+    """
+    Send arbitrary data to a destination node.
+
+    Args:
+        destination_id (str): The node ID to send to.
+        payload (bytes): The data to send.
+        portnum (int): The port number (default 64 for user data).
+        want_ack (bool): Whether to request an acknowledgement.
+    """
+    # Import encryption and connection as needed
+    from .singleton import conn
+    from .encryption import encrypt_packet
+
+    # Encrypt the payload if needed
+    encrypted_payload = encrypt_packet(payload, destination_id)
+
+    # Construct the packet (you may need to adapt this to your packet format)
+    packet = {
+        "to": destination_id,
+        "payload": encrypted_payload,
+        "portnum": portnum,
+        "want_ack": want_ack,
+    }
+
+    # Send the packet using your connection object
+    conn.send_packet(packet)
 
 def send_text_message(message: str = None, **kwargs) -> None:
     """Send a text message to the specified destination."""
