@@ -80,6 +80,27 @@ def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
     except Exception as e:
         print(f"Error while sending message: {e}")
 
+def create_data_payload(portnum: int, **kwargs):
+    """Create a data payload for raw data transmission."""
+    data = mesh_pb2.Data()
+    data.portnum = portnum
+    data.payload = kwargs["payload"]
+    return generate_mesh_packet(
+        data,
+        to=kwargs["to"],
+        want_ack=kwargs.get("want_ack", False)
+    )
+
+def send_data(destination_id: str, payload: bytes, portnum: int = 256, want_ack: bool = False):
+    """Send raw data to a specified destination node ID."""
+    from .singleton import conn, node
+    publish_message(
+        create_data_payload,
+        portnum=portnum,
+        to=int(destination_id.replace("!", ""), 16),
+        payload=payload,
+        want_ack=want_ack
+    )
 
 def get_message_id(rolling_message_id: int, max_message_id: int = 4294967295) -> int:
     """Increment the message ID with sequential wrapping and add a random upper bit component to prevent predictability."""
@@ -122,34 +143,6 @@ def send_nodeinfo(**kwargs) -> None:
         portnum=portnums_pb2.NODEINFO_APP,
         **kwargs,
     )
-
-def send_data(destination_id: str, payload: bytes, portnum: int = 64, want_ack: bool = False):
-    """
-    Send arbitrary data to a destination node.
-
-    Args:
-        destination_id (str): The node ID to send to.
-        payload (bytes): The data to send.
-        portnum (int): The port number (default 64 for user data).
-        want_ack (bool): Whether to request an acknowledgement.
-    """
-    # Import encryption and connection as needed
-    from .singleton import conn
-    from .encryption import encrypt_packet
-
-    # Encrypt the payload if needed
-    encrypted_payload = encrypt_packet(payload, destination_id)
-
-    # Construct the packet (you may need to adapt this to your packet format)
-    packet = {
-        "to": destination_id,
-        "payload": encrypted_payload,
-        "portnum": portnum,
-        "want_ack": want_ack,
-    }
-
-    # Send the packet using your connection object
-    conn.send_packet(packet)
 
 def send_text_message(message: str = None, **kwargs) -> None:
     """Send a text message to the specified destination."""
