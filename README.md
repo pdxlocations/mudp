@@ -38,6 +38,7 @@ from mudp import (
     send_power_metrics,
     send_health_metrics,
     send_waypoint,
+    send_data,
 )
 
 MCAST_GRP = "224.0.0.69"
@@ -58,6 +59,7 @@ send_environment_metrics(keys=values...)
 send_power_metrics(keys=values...)
 send_health_metrics(keys=values...)
 send_waypoint(latitude, longitude, keys=values...)
+send_data(destination_id, payload, portnum=256, want_ack=False)
 
 Optional Arguments for all message types:
 
@@ -69,7 +71,8 @@ Optional Arguments for all message types:
 
 Example:
 ```python
-send_text_message("Happy New Year" to=12345678, hop_limit=5)
+send_text_message("Happy New Year", to=12345678, hop_limit=5)
+send_data("!deadbeef", b"raw bytes here", portnum=256, want_ack=True)
 ```
 
 Supported keyword arguments for nodeinfo:
