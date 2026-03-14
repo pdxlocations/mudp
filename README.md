@@ -31,6 +31,7 @@ from mudp import (
     conn,
     node,
     send_nodeinfo,
+    send_reply,
     send_text_message,
     send_device_telemetry,
     send_position,
@@ -52,6 +53,8 @@ node.key = "1PG7OiApB1nwvP+rz05pAQ=="
 conn.setup_multicast(MCAST_GRP, MCAST_PORT)
 
 send_text_message("text", keys=values...)
+send_reply("text", packet.id, keys=values...)
+send_reply("👍", packet.id, emoji=True, keys=values...)
 send_nodeinfo(keys=values...)
 send_device_telemetry(keys=values...)
 send_position(latitude, longitude, keys=values...)
@@ -72,8 +75,12 @@ Optional Arguments for all message types:
 Example:
 ```python
 send_text_message("Happy New Year", to=12345678, hop_limit=5)
+send_reply("👍", reply_id=packet.id, emoji=True)
+send_reply("message received", reply_id=packet.id)
 send_data("!deadbeef", b"raw bytes here", portnum=256, want_ack=True)
 ```
+
+Use `emoji=True` when the reply payload is an emoji reaction. Plain-text replies only need `reply_id`.
 
 Supported keyword arguments for nodeinfo:
 

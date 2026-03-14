@@ -15,6 +15,12 @@ def create_payload(data, portnum: int, **kwargs) -> bytes:
     encoded_message.portnum = portnum
     encoded_message.payload = data.SerializeToString() if hasattr(data, "SerializeToString") else data
     encoded_message.want_response = kwargs.get("want_response", False)
+    reply_id = kwargs.get("reply_id")
+    if reply_id is not None:
+        encoded_message.reply_id = reply_id
+    emoji = kwargs.get("emoji")
+    if emoji:
+        encoded_message.emoji = int(emoji)
     encoded_message.bitfield = kwargs.get("bitfield", 1)
     return generate_mesh_packet(encoded_message, **kwargs)
 
@@ -143,6 +149,22 @@ def send_text_message(message: str = None, **kwargs) -> None:
         return create_payload(data, portnum, **kwargs)
 
     publish_message(create_text_payload, portnums_pb2.TEXT_MESSAGE_APP, message=message, **kwargs)
+
+
+def send_reply(message: str, reply_id: int, emoji: bool = False, **kwargs) -> None:
+    """Send a text reply referencing an earlier Meshtastic message ID."""
+
+    def create_reply_payload(portnum: int, message: str, **kwargs):
+        return create_payload(message.encode("utf-8"), portnum, **kwargs)
+
+    publish_message(
+        create_reply_payload,
+        portnums_pb2.TEXT_MESSAGE_APP,
+        message=message,
+        reply_id=reply_id,
+        emoji=emoji if emoji else None,
+        **kwargs,
+    )
 
 
 def send_position(latitude: float = None, longitude: float = None, **kwargs) -> None:
