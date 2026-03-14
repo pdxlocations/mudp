@@ -1,3 +1,4 @@
+from collections import deque
 from typing import Optional
 
 import threading
@@ -48,6 +49,8 @@ class UDPPacketStream:
       - 'mesh.rx.raw'(data)
       - 'mesh.rx.decode_error'(addr)
       - 'mesh.rx.packet'(packet, addr)
+      - 'mesh.rx.unique_packet'(packet, addr)
+      - 'mesh.rx.duplicate'(packet, addr)
       - 'mesh.rx.decoded'(packet, portnum, addr)
       - 'mesh.rx.port.<portnum>'(packet, addr)  # per-port topic for easy filtering
     """
@@ -71,6 +74,7 @@ class UDPPacketStream:
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._sock = None
+        self._seen_packets: deque[tuple[int, int]] = deque(maxlen=256)
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -97,6 +101,13 @@ class UDPPacketStream:
         if join and self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
 
+    def _is_duplicate_packet(self, packet: mesh_pb2.MeshPacket) -> bool:
+        key = (int(getattr(packet, "from", 0) or 0), int(getattr(packet, "id", 0) or 0))
+        if key in self._seen_packets:
+            return True
+        self._seen_packets.append(key)
+        return False
+
     def _run(self) -> None:
         while not self._stop.is_set():
             try:
@@ -116,6 +127,10 @@ class UDPPacketStream:
                     continue
 
                 pub.sendMessage("mesh.rx.packet", packet=mp, addr=_addr)
+                if self._is_duplicate_packet(mp):
+                    pub.sendMessage("mesh.rx.duplicate", packet=mp, addr=_addr)
+                else:
+                    pub.sendMessage("mesh.rx.unique_packet", packet=mp, addr=_addr)
 
                 if mp.HasField("decoded"):
                     portnum = mp.decoded.portnum
