@@ -7,6 +7,7 @@ from pubsub import pub
 
 from meshtastic import protocols
 from meshtastic.protobuf import portnums_pb2, mesh_pb2
+from mudp.reliability import is_ack, is_nak, parse_routing, pending_acks
 from mudp.singleton import conn
 from mudp.encryption import decrypt_packet
 
@@ -122,6 +123,16 @@ class UDPPacketStream:
                     pub.sendMessage(f"mesh.rx.port.{portnum}", packet=mp, addr=_addr)
                     if portnum == portnums_pb2.PortNum.TEXT_MESSAGE_APP:
                         pub.sendMessage("mesh.rx.text", packet=mp, addr=_addr)
+                    elif portnum == portnums_pb2.PortNum.ROUTING_APP:
+                        routing = parse_routing(mp)
+                        if routing is not None:
+                            pub.sendMessage("mesh.rx.routing", packet=mp, routing=routing, addr=_addr)
+                            if is_ack(mp):
+                                pending = pending_acks.resolve(mp.decoded.request_id)
+                                pub.sendMessage("mesh.rx.ack", packet=mp, routing=routing, addr=_addr, pending=pending)
+                            elif is_nak(mp):
+                                pending = pending_acks.resolve(mp.decoded.request_id)
+                                pub.sendMessage("mesh.rx.nak", packet=mp, routing=routing, addr=_addr, pending=pending)
 
             except Exception as e:
                 pub.sendMessage("mesh.rx.listener_error", error=e)
