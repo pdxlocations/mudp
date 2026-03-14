@@ -1,4 +1,5 @@
 from collections import deque
+import time
 from typing import Optional
 
 import threading
@@ -125,6 +126,10 @@ class UDPPacketStream:
                 if mp is None:
                     pub.sendMessage("mesh.rx.decode_error", addr=_addr)
                     continue
+                if not getattr(mp, "rx_time", 0):
+                    mp.rx_time = int(time.time())
+                if not getattr(mp, "transport_mechanism", 0):
+                    mp.transport_mechanism = mesh_pb2.MeshPacket.TransportMechanism.TRANSPORT_MULTICAST_UDP
 
                 pub.sendMessage("mesh.rx.packet", packet=mp, addr=_addr)
                 if self._is_duplicate_packet(mp):

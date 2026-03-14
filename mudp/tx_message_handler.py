@@ -10,6 +10,14 @@ from mudp.singleton import conn, node
 message_id = random.getrandbits(32)
 
 
+def _coerce_packet_enum(enum_type, value):
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return enum_type.Value(value)
+    return int(value)
+
+
 def create_payload(data, portnum: int, **kwargs) -> bytes:
     """Generalized function to create a payload."""
     encoded_message = mesh_pb2.Data()
@@ -55,6 +63,38 @@ def build_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> mesh_pb2.Mesh
         hop_start = hop_limit
     mesh_packet.hop_limit = hop_limit
     mesh_packet.hop_start = hop_start
+
+    if kwargs.get("rx_time") is not None:
+        mesh_packet.rx_time = int(kwargs["rx_time"])
+    if kwargs.get("rx_snr") is not None:
+        mesh_packet.rx_snr = float(kwargs["rx_snr"])
+    if kwargs.get("rx_rssi") is not None:
+        mesh_packet.rx_rssi = int(kwargs["rx_rssi"])
+    if kwargs.get("via_mqtt") is not None:
+        mesh_packet.via_mqtt = bool(kwargs["via_mqtt"])
+    if kwargs.get("next_hop") is not None:
+        mesh_packet.next_hop = int(kwargs["next_hop"])
+    if kwargs.get("relay_node") is not None:
+        mesh_packet.relay_node = int(kwargs["relay_node"])
+    if kwargs.get("tx_after") is not None:
+        mesh_packet.tx_after = int(kwargs["tx_after"])
+    if kwargs.get("public_key") is not None:
+        mesh_packet.public_key = kwargs["public_key"]
+    if kwargs.get("pki_encrypted") is not None:
+        mesh_packet.pki_encrypted = bool(kwargs["pki_encrypted"])
+
+    priority = _coerce_packet_enum(mesh_pb2.MeshPacket.Priority, kwargs.get("priority"))
+    if priority is not None:
+        mesh_packet.priority = priority
+    delayed = _coerce_packet_enum(mesh_pb2.MeshPacket.Delayed, kwargs.get("delayed"))
+    if delayed is not None:
+        mesh_packet.delayed = delayed
+    transport_mechanism = _coerce_packet_enum(
+        mesh_pb2.MeshPacket.TransportMechanism,
+        kwargs.get("transport_mechanism"),
+    )
+    if transport_mechanism is not None:
+        mesh_packet.transport_mechanism = transport_mechanism
 
     if node.key == "":
         mesh_packet.decoded.CopyFrom(encoded_message)
