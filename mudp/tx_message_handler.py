@@ -4,6 +4,7 @@ from typing import Callable
 
 from meshtastic import portnums_pb2, mesh_pb2, telemetry_pb2, BROADCAST_NUM
 from mudp.encryption import generate_hash, encrypt_packet
+from mudp.reliability import register_pending_ack
 from mudp.singleton import conn, node
 
 message_id = random.getrandbits(32)
@@ -18,6 +19,9 @@ def create_payload(data, portnum: int, **kwargs) -> bytes:
     reply_id = kwargs.get("reply_id")
     if reply_id is not None:
         encoded_message.reply_id = reply_id
+    request_id = kwargs.get("request_id")
+    if request_id is not None:
+        encoded_message.request_id = request_id
     emoji = kwargs.get("emoji")
     if emoji:
         encoded_message.emoji = int(emoji)
@@ -25,9 +29,8 @@ def create_payload(data, portnum: int, **kwargs) -> bytes:
     return generate_mesh_packet(encoded_message, **kwargs)
 
 
-def generate_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> bytes:
-    """Generate the final mesh packet."""
-
+def build_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> mesh_pb2.MeshPacket:
+    """Generate a MeshPacket object."""
     from_id_hex = kwargs.get("node_id", node.node_id)
     from_id = int(from_id_hex.replace("!", ""), 16)
     destination = kwargs.get("to", BROADCAST_NUM)
@@ -40,7 +43,8 @@ def generate_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> bytes:
     message_id = get_message_id(message_id)
 
     mesh_packet = mesh_pb2.MeshPacket()
-    mesh_packet.id = message_id
+    packet_id = kwargs.get("packet_id")
+    mesh_packet.id = message_id if packet_id is None else int(packet_id)
     setattr(mesh_packet, "from", from_id)
     mesh_packet.to = int(destination)
     mesh_packet.want_ack = kwargs.get("want_ack", False)
@@ -57,7 +61,12 @@ def generate_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> bytes:
     else:
         mesh_packet.encrypted = encrypt_packet(node.channel, node.key, mesh_packet, encoded_message)
 
-    return mesh_packet.SerializeToString()
+    return mesh_packet
+
+
+def generate_mesh_packet(encoded_message: mesh_pb2.Data, **kwargs) -> bytes:
+    """Generate the final mesh packet."""
+    return build_mesh_packet(encoded_message, **kwargs).SerializeToString()
 
 
 def get_portnum_name(portnum: int) -> str:
@@ -72,6 +81,14 @@ def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
 
     try:
         payload = payload_function(portnum=portnum, **kwargs)
+        if isinstance(payload, mesh_pb2.MeshPacket):
+            packet = payload
+            raw_payload = packet.SerializeToString()
+        else:
+            raw_payload = payload
+            packet = mesh_pb2.MeshPacket()
+            packet.ParseFromString(raw_payload)
+
         print(f"\n[TX] Portnum = {get_portnum_name(portnum)} ({portnum})")
 
         print(f"     To: {kwargs.get('to', 'BROADCAST_NUM')}")
@@ -79,9 +96,10 @@ def publish_message(payload_function: Callable, portnum: int, **kwargs) -> None:
             if k not in ("use_config", "to", "channel", "key") and v is not None:
                 print(f"     {k}: {v}")
 
-        conn.sendto(payload, (conn.host, conn.port))
+        register_pending_ack(packet, raw_payload)
+        conn.sendto(raw_payload, (conn.host, conn.port))
 
-        print(f"\n[SENT] {payload}")
+        print(f"\n[SENT] {raw_payload}")
 
     except Exception as e:
         print(f"Error while sending message: {e}")
