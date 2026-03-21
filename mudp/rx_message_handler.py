@@ -1,4 +1,4 @@
-from collections import deque
+from collections import OrderedDict
 import time
 from typing import Optional
 
@@ -49,11 +49,11 @@ class UDPPacketStream:
     Background listener that publishes:
       - 'mesh.rx.raw'(data)
       - 'mesh.rx.decode_error'(addr)
-      - 'mesh.rx.packet'(packet, addr)
+      - 'mesh.rx.packet'(packet, addr)  # every successfully parsed packet, including duplicates
       - 'mesh.rx.unique_packet'(packet, addr)
       - 'mesh.rx.duplicate'(packet, addr)
-      - 'mesh.rx.decoded'(packet, portnum, addr)
-      - 'mesh.rx.port.<portnum>'(packet, addr)  # per-port topic for easy filtering
+      - 'mesh.rx.decoded'(packet, portnum, addr)  # unique packets only
+      - 'mesh.rx.port.<portnum>'(packet, addr)  # per-port topic for unique packets only
     """
 
     def __init__(
@@ -64,6 +64,8 @@ class UDPPacketStream:
         recv_buf: int = 65535,
         parse_payload: bool = True,
         select_timeout: float = 0.2,
+        dedupe_ttl_sec: float = 60.0,
+        dedupe_max_entries: int = 4096,
     ) -> None:
         self.mcast_grp = mcast_grp
         self.mcast_port = mcast_port
@@ -71,11 +73,13 @@ class UDPPacketStream:
         self.recv_buf = recv_buf
         self.parse_payload = parse_payload
         self.select_timeout = select_timeout
+        self.dedupe_ttl_sec = max(float(dedupe_ttl_sec), 0.0)
+        self.dedupe_max_entries = max(int(dedupe_max_entries), 1)
 
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._sock = None
-        self._seen_packets: deque[tuple[int, int]] = deque(maxlen=256)
+        self._seen_packets: OrderedDict[tuple[int, int], float] = OrderedDict()
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -102,12 +106,96 @@ class UDPPacketStream:
         if join and self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
 
-    def _is_duplicate_packet(self, packet: mesh_pb2.MeshPacket) -> bool:
-        key = (int(getattr(packet, "from", 0) or 0), int(getattr(packet, "id", 0) or 0))
-        if key in self._seen_packets:
-            return True
-        self._seen_packets.append(key)
+    def _packet_dedupe_key(self, packet: mesh_pb2.MeshPacket) -> tuple[int, int] | None:
+        from_id = int(getattr(packet, "from", 0) or 0)
+        packet_id = int(getattr(packet, "id", 0) or 0)
+        if from_id <= 0 or packet_id <= 0:
+            return None
+        return (from_id, packet_id)
+
+    def _prune_seen_packets(self, now: float) -> None:
+        if self.dedupe_ttl_sec > 0:
+            expiry_cutoff = now - self.dedupe_ttl_sec
+            while self._seen_packets:
+                _, seen_at = next(iter(self._seen_packets.items()))
+                if seen_at > expiry_cutoff:
+                    break
+                self._seen_packets.popitem(last=False)
+
+        while len(self._seen_packets) > self.dedupe_max_entries:
+            self._seen_packets.popitem(last=False)
+
+    def _is_duplicate_packet(
+        self,
+        packet: mesh_pb2.MeshPacket,
+        *,
+        now: float | None = None,
+    ) -> bool:
+        key = self._packet_dedupe_key(packet)
+        if key is None:
+            return False
+
+        check_time = time.monotonic() if now is None else float(now)
+        self._prune_seen_packets(check_time)
+
+        seen_at = self._seen_packets.get(key)
+        if seen_at is not None:
+            if self.dedupe_ttl_sec == 0 or (check_time - seen_at) <= self.dedupe_ttl_sec:
+                self._seen_packets.move_to_end(key)
+                self._seen_packets[key] = check_time
+                return True
+            self._seen_packets.pop(key, None)
+
+        self._seen_packets[key] = check_time
+        self._prune_seen_packets(check_time)
         return False
+
+    def _publish_unique_topics(self, packet: mesh_pb2.MeshPacket, addr) -> None:
+        pub.sendMessage("mesh.rx.unique_packet", packet=packet, addr=addr)
+
+        if not packet.HasField("decoded"):
+            return
+
+        portnum = packet.decoded.portnum
+        pub.sendMessage("mesh.rx.decoded", packet=packet, portnum=portnum, addr=addr)
+        pub.sendMessage(f"mesh.rx.port.{portnum}", packet=packet, addr=addr)
+        if portnum == portnums_pb2.PortNum.TEXT_MESSAGE_APP:
+            pub.sendMessage("mesh.rx.text", packet=packet, addr=addr)
+            return
+
+        if portnum != portnums_pb2.PortNum.ROUTING_APP:
+            return
+
+        routing = parse_routing(packet)
+        if routing is None:
+            return
+
+        pub.sendMessage("mesh.rx.routing", packet=packet, routing=routing, addr=addr)
+        if is_ack(packet):
+            pending = pending_acks.resolve(packet.decoded.request_id)
+            pub.sendMessage("mesh.rx.ack", packet=packet, routing=routing, addr=addr, pending=pending)
+        elif is_nak(packet):
+            pending = pending_acks.resolve(packet.decoded.request_id)
+            pub.sendMessage("mesh.rx.nak", packet=packet, routing=routing, addr=addr, pending=pending)
+
+    def _handle_datagram(self, raw: bytes, addr) -> None:
+        pub.sendMessage("mesh.rx.raw", data=raw, addr=addr)
+
+        packet = _decode_and_optionally_parse(raw, self.key, parse_payload=self.parse_payload)
+        if packet is None:
+            pub.sendMessage("mesh.rx.decode_error", addr=addr)
+            return
+        if not getattr(packet, "rx_time", 0):
+            packet.rx_time = int(time.time())
+        if not getattr(packet, "transport_mechanism", 0):
+            packet.transport_mechanism = mesh_pb2.MeshPacket.TransportMechanism.TRANSPORT_MULTICAST_UDP
+
+        pub.sendMessage("mesh.rx.packet", packet=packet, addr=addr)
+        if self._is_duplicate_packet(packet):
+            pub.sendMessage("mesh.rx.duplicate", packet=packet, addr=addr)
+            return
+
+        self._publish_unique_topics(packet, addr)
 
     def _run(self) -> None:
         while not self._stop.is_set():
@@ -120,39 +208,6 @@ class UDPPacketStream:
                 else:
                     raw, _addr = conn.recvfrom(self.recv_buf)
 
-                pub.sendMessage("mesh.rx.raw", data=raw, addr=_addr)
-
-                mp = _decode_and_optionally_parse(raw, self.key, parse_payload=self.parse_payload)
-                if mp is None:
-                    pub.sendMessage("mesh.rx.decode_error", addr=_addr)
-                    continue
-                if not getattr(mp, "rx_time", 0):
-                    mp.rx_time = int(time.time())
-                if not getattr(mp, "transport_mechanism", 0):
-                    mp.transport_mechanism = mesh_pb2.MeshPacket.TransportMechanism.TRANSPORT_MULTICAST_UDP
-
-                pub.sendMessage("mesh.rx.packet", packet=mp, addr=_addr)
-                if self._is_duplicate_packet(mp):
-                    pub.sendMessage("mesh.rx.duplicate", packet=mp, addr=_addr)
-                else:
-                    pub.sendMessage("mesh.rx.unique_packet", packet=mp, addr=_addr)
-
-                if mp.HasField("decoded"):
-                    portnum = mp.decoded.portnum
-                    pub.sendMessage("mesh.rx.decoded", packet=mp, portnum=portnum, addr=_addr)
-                    pub.sendMessage(f"mesh.rx.port.{portnum}", packet=mp, addr=_addr)
-                    if portnum == portnums_pb2.PortNum.TEXT_MESSAGE_APP:
-                        pub.sendMessage("mesh.rx.text", packet=mp, addr=_addr)
-                    elif portnum == portnums_pb2.PortNum.ROUTING_APP:
-                        routing = parse_routing(mp)
-                        if routing is not None:
-                            pub.sendMessage("mesh.rx.routing", packet=mp, routing=routing, addr=_addr)
-                            if is_ack(mp):
-                                pending = pending_acks.resolve(mp.decoded.request_id)
-                                pub.sendMessage("mesh.rx.ack", packet=mp, routing=routing, addr=_addr, pending=pending)
-                            elif is_nak(mp):
-                                pending = pending_acks.resolve(mp.decoded.request_id)
-                                pub.sendMessage("mesh.rx.nak", packet=mp, routing=routing, addr=_addr, pending=pending)
-
+                self._handle_datagram(raw, _addr)
             except Exception as e:
                 pub.sendMessage("mesh.rx.listener_error", error=e)

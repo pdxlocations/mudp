@@ -87,7 +87,7 @@ def main():
     setup_node()
     demo_send_messages()
 
-    pub.subscribe(on_recieve, "mesh.rx.packet")
+    pub.subscribe(on_recieve, "mesh.rx.unique_packet")
     interface.start()
 
     try:

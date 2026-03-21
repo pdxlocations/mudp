@@ -20,18 +20,20 @@ When using this library as a listener, it can publish received packets to the Py
 
 - **mesh.rx.raw** – publishes `(data, addr)` with the raw UDP packet bytes and source address tuple.
 - **mesh.rx.decode_error** – publishes `(addr)` when a packet fails to decode.
-- **mesh.rx.packet** – publishes `(packet, addr)` for all successfully parsed `MeshPacket` objects.
+- **mesh.rx.packet** – publishes `(packet, addr)` for all successfully parsed `MeshPacket` objects, including duplicates.
 - **mesh.rx.unique_packet** – publishes `(packet, addr)` only for the first copy of a packet seen by the listener.
 - **mesh.rx.duplicate** – publishes `(packet, addr)` when the listener sees the same `(from, id)` again.
-- **mesh.rx.decoded** – publishes `(packet, portnum, addr)` when the decoded portion is available.
-- **mesh.rx.port.&lt;portnum&gt;** – publishes `(packet, addr)` for filtering by port number.
-- **mesh.rx.routing** – publishes `(packet, routing, addr)` for decoded `ROUTING_APP` packets.
-- **mesh.rx.ack** – publishes `(packet, routing, addr, pending)` for routing ACKs and clears any matching pending outbound ACK state.
-- **mesh.rx.nak** – publishes `(packet, routing, addr, pending)` for routing NAKs and clears any matching pending outbound ACK state.
+- **mesh.rx.decoded** – publishes `(packet, portnum, addr)` when the decoded portion is available for a unique packet.
+- **mesh.rx.port.&lt;portnum&gt;** – publishes `(packet, addr)` for filtering unique packets by port number.
+- **mesh.rx.text** – publishes `(packet, addr)` for unique decoded `TEXT_MESSAGE_APP` packets.
+- **mesh.rx.routing** – publishes `(packet, routing, addr)` for unique decoded `ROUTING_APP` packets.
+- **mesh.rx.ack** – publishes `(packet, routing, addr, pending)` for unique routing ACKs and clears any matching pending outbound ACK state.
+- **mesh.rx.nak** – publishes `(packet, routing, addr, pending)` for unique routing NAKs and clears any matching pending outbound ACK state.
 
-For most application code, subscribe to **mesh.rx.unique_packet** instead of **mesh.rx.packet**.
-The raw **mesh.rx.packet** stream is still useful for reliability handling because repeated `want_ack`
-packets may need repeated ACKs on multicast networks.
+Use **mesh.rx.packet** when you need every wire observation.
+Use **mesh.rx.unique_packet** and the decoded/per-port/text/routing topics for application logic that should run once per logical message.
+
+`UDPPacketStream` also accepts `dedupe_ttl_sec` and `dedupe_max_entries` to tune how long `(from, id)` observations stay in the duplicate-suppression cache and how large that cache can grow.
 
 # Reliability Topics
 
@@ -47,7 +49,7 @@ Current behavior:
 - direct `want_ack` packets are retried
 - broadcast packets are not retried
 - ACK and NAK handling uses `ROUTING_APP` packets
-- duplicate classification happens at the listener level, but reliability still operates on raw packets
+- duplicate classification happens at the listener level using a TTL-backed `(from, id)` cache
 
 # Send Functions (see examples for further information):
 

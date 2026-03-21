@@ -1,5 +1,4 @@
 import time
-from collections import deque
 
 from pubsub import pub
 
@@ -15,18 +14,10 @@ interface = UDPPacketStream(MCAST_GRP, MCAST_PORT, key=KEY)
 class ReplyBot:
     def __init__(self) -> None:
         self.reply_with_emoji = True
-        # Keep a short history so the bot only answers each packet once.
-        self.seen_packet_ids = deque(maxlen=256)
 
     def on_text_message(self, packet, addr=None) -> None:
         if not packet.HasField("decoded"):
             return
-
-        # Multicast listeners can see the same packet more than once.
-        if packet.id in self.seen_packet_ids:
-            print(f"[SKIP] Duplicate packet {packet.id}")
-            return
-        self.seen_packet_ids.append(packet.id)
 
         my_node_id = int(node.node_id.replace("!", ""), 16)
         sender_id = getattr(packet, "from", None)
@@ -75,7 +66,7 @@ def main() -> None:
     setup_node()
     bot = ReplyBot()
 
-    # `mesh.rx.text` only fires for decoded TEXT_MESSAGE_APP packets.
+    # `mesh.rx.text` only fires once per logical text packet.
     pub.subscribe(bot.on_text_message, "mesh.rx.text")
     interface.start()
 

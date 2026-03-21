@@ -15,7 +15,7 @@ def on_recieve(packet: mesh_pb2.MeshPacket, addr=None):
 
 def start() -> None:
     interface = UDPPacketStream(MCAST_GRP, MCAST_PORT, key=KEY, parse_payload=True)
-    pub.subscribe(on_recieve, "mesh.rx.packet")
+    pub.subscribe(on_recieve, "mesh.rx.unique_packet")
     interface.start()
     print(f"Listening for UDP multicast packets on {MCAST_GRP}:{MCAST_PORT}...")
     try:
