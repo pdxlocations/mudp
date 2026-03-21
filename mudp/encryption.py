@@ -4,6 +4,21 @@ from cryptography.hazmat.backends import default_backend
 from meshtastic.protobuf import mesh_pb2
 
 
+MESHTASTIC_ONE_BYTE_PSK_PREFIX = bytes.fromhex("d4f1bb3a20290759f0bcffabcf4e69")
+
+
+def normalize_psk(key: str) -> str:
+    try:
+        raw_key = base64.b64decode(key.encode("ascii"), validate=True)
+    except Exception:
+        return key
+
+    if len(raw_key) != 1 or not 0x01 <= raw_key[0] <= 0x07:
+        return key
+
+    return base64.b64encode(MESHTASTIC_ONE_BYTE_PSK_PREFIX + raw_key).decode("ascii")
+
+
 def decrypt_packet(mp: mesh_pb2.MeshPacket, key: str) -> mesh_pb2.Data | None:
     """
     Decrypt the encrypted message payload and return the decoded Data object.
@@ -15,8 +30,7 @@ def decrypt_packet(mp: mesh_pb2.MeshPacket, key: str) -> mesh_pb2.Data | None:
     Returns:
         A decoded mesh_pb2.Data object or None on failure.
     """
-    if key == "AQ==":
-        key = "1PG7OiApB1nwvP+rz05pAQ=="
+    key = normalize_psk(key)
 
     try:
         key_bytes = base64.b64decode(key.encode("ascii"))
@@ -58,8 +72,7 @@ def encrypt_packet(channel: str, key: str, mp: mesh_pb2.MeshPacket, encoded_mess
     Returns:
         The encrypted message bytes or None on failure.
     """
-    if key == "AQ==":
-        key = "1PG7OiApB1nwvP+rz05pAQ=="
+    key = normalize_psk(key)
 
     try:
         mp.channel = generate_hash(channel, key)
@@ -92,8 +105,7 @@ def xor_hash(data: bytes) -> int:
 
 def generate_hash(name: str, key: str) -> int:
     """generate the channel number by hashing the channel name and psk"""
-    if key == "AQ==":
-        key = "1PG7OiApB1nwvP+rz05pAQ=="
+    key = normalize_psk(key)
     replaced_key = key.replace("-", "+").replace("_", "/")
     key_bytes = base64.b64decode(replaced_key.encode("utf-8"))
     h_name = xor_hash(bytes(name, "utf-8"))

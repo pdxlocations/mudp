@@ -87,7 +87,7 @@ class UDPPacketStream:
         conn.setup_multicast(self.mcast_grp, self.mcast_port)
 
         # Try to grab underlying socket and make it non-blocking
-        self._sock = getattr(conn, "sock", None)
+        self._sock = getattr(conn, "sock", None) or getattr(conn, "socket", None)
         if self._sock is not None:
             try:
                 self._sock.setblocking(False)

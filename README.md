@@ -14,6 +14,11 @@ To view all Meshtastic udp activity on your LAN:
 mudp
 ```
 
+`mudp` accepts the Meshtastic 1-byte PSK aliases `AQ==`, `Ag==`, `Aw==`, `BA==`, `BQ==`, `Bg==`, and `Bw==` anywhere a channel key is used and normalizes them internally.
+
+If multicast binding needs tuning, set `MUDP_BIND_MODE` to `auto`, `group`, or `any`.
+`auto` prefers binding to the multicast group first on Linux, then falls back to `0.0.0.0`.
+
 # PubSub RX Topics
 
 When using this library as a listener, it can publish received packets to the Python `pubsub` system. The following topics are available:

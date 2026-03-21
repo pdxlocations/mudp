@@ -34,10 +34,7 @@ def is_direct_message(packet: mesh_pb2.MeshPacket) -> bool:
 def is_text_message(packet: mesh_pb2.MeshPacket) -> bool:
     if not packet.HasField("decoded"):
         return False
-    return packet.decoded.portnum in (
-        portnums_pb2.PortNum.TEXT_MESSAGE_APP,
-        portnums_pb2.PortNum.TEXT_MESSAGE_COMPRESSED_APP,
-    )
+    return packet.decoded.portnum == portnums_pb2.PortNum.TEXT_MESSAGE_APP
 
 
 def compute_reply_hop_limit(packet: mesh_pb2.MeshPacket, default_hop_limit: int = 3) -> int:
@@ -93,21 +90,26 @@ def parse_routing(packet: mesh_pb2.MeshPacket) -> mesh_pb2.Routing | None:
 
 def is_ack(packet: mesh_pb2.MeshPacket) -> bool:
     routing = parse_routing(packet)
+    if routing is None or not packet.HasField("decoded") or not packet.decoded.request_id:
+        return False
+
+    # Some Meshtastic ACKs arrive with a request_id but without an explicit
+    # routing variant set. Treat those empty routing payloads as ACKs.
+    variant = routing.WhichOneof("variant")
+    if variant is None:
+        return True
+
     return bool(
-        routing is not None
-        and packet.decoded.request_id
-        and routing.WhichOneof("variant") == "error_reason"
-        and routing.error_reason == mesh_pb2.Routing.Error.NONE
+        variant == "error_reason" and routing.error_reason == mesh_pb2.Routing.Error.NONE
     )
 
 
 def is_nak(packet: mesh_pb2.MeshPacket) -> bool:
     routing = parse_routing(packet)
+    if routing is None or not packet.HasField("decoded") or not packet.decoded.request_id:
+        return False
     return bool(
-        routing is not None
-        and packet.decoded.request_id
-        and routing.WhichOneof("variant") == "error_reason"
-        and routing.error_reason != mesh_pb2.Routing.Error.NONE
+        routing.WhichOneof("variant") == "error_reason" and routing.error_reason != mesh_pb2.Routing.Error.NONE
     )
 
 
