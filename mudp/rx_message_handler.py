@@ -22,7 +22,7 @@ def _decode_and_optionally_parse(
         mp.ParseFromString(raw)
 
         if mp.HasField("encrypted") and not mp.HasField("decoded"):
-            decoded = decrypt_packet(mp, key)
+            decoded = decrypt_packet(mp, key, silent=True)
             if decoded is not None:
                 mp.decoded.CopyFrom(decoded)
             # else: keep the encrypted packet as-is

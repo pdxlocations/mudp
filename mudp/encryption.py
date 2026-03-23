@@ -19,7 +19,7 @@ def normalize_psk(key: str) -> str:
     return base64.b64encode(MESHTASTIC_ONE_BYTE_PSK_PREFIX + raw_key).decode("ascii")
 
 
-def decrypt_packet(mp: mesh_pb2.MeshPacket, key: str) -> mesh_pb2.Data | None:
+def decrypt_packet(mp: mesh_pb2.MeshPacket, key: str, *, silent: bool = False) -> mesh_pb2.Data | None:
     """
     Decrypt the encrypted message payload and return the decoded Data object.
 
@@ -55,7 +55,8 @@ def decrypt_packet(mp: mesh_pb2.MeshPacket, key: str) -> mesh_pb2.Data | None:
             return None
 
     except Exception as e:
-        print(f"Failed to decrypt: {e}")
+        if not silent:
+            print(f"Failed to decrypt: {e}")
         return None
 
 
