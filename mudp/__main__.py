@@ -3,7 +3,9 @@ from pubsub import pub
 from mudp import UDPPacketStream
 from meshtastic.protobuf import mesh_pb2
 
-MCAST_GRP = "224.0.0.69"
+# meshtastic <2.8
+# MCAST_GRP = "224.0.0.69"
+MCAST_GRP = "239.0.0.69"
 MCAST_PORT = 4403
 KEY = "1PG7OiApB1nwvP+rz05pAQ=="
 

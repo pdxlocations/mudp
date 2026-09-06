@@ -5,7 +5,9 @@ from google.protobuf import text_format
 from meshtastic.protobuf import mesh_pb2, portnums_pb2
 from mudp import UDPPacketStream
 
-MCAST_GRP = "224.0.0.69"
+# meshtastic <2.8
+# MCAST_GRP = "224.0.0.69"
+MCAST_GRP = "239.0.0.69"
 MCAST_PORT = 4403
 KEY = "AQ=="
 

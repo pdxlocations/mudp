@@ -74,7 +74,9 @@ from mudp import (
     send_data,
 )
 
-MCAST_GRP = "224.0.0.69"
+# meshtastic <2.8
+# MCAST_GRP = "224.0.0.69"
+MCAST_GRP = "239.0.0.69"
 MCAST_PORT = 4403
 
 node.node_id = "!deadbeef"

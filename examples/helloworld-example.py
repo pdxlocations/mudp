@@ -15,7 +15,9 @@ from mudp import (
     send_waypoint,
 )
 
-MCAST_GRP = "224.0.0.69"
+# meshtastic <2.8
+# MCAST_GRP = "224.0.0.69"
+MCAST_GRP = "239.0.0.69"
 MCAST_PORT = 4403
 KEY = "1PG7OiApB1nwvP+rz05pAQ=="
 
