@@ -176,8 +176,11 @@ def send_nodeinfo(**kwargs) -> None:
     if kwargs.get("public_key") == b"":
         kwargs["public_key"] = None
 
-    if kwargs.get("macaddr") == b"":
-        kwargs["macaddr"] = None
+    # Firmware nanopb always serializes the fixed six-byte field. Match it
+    # before encoding, including for virtual identities without a hardware MAC.
+    kwargs["macaddr"] = kwargs.get("macaddr") or getattr(node, "macaddr", b"") or bytes(6)
+    if len(kwargs["macaddr"]) != 6:
+        raise ValueError("macaddr must contain exactly six bytes")
 
     def create_nodeinfo_payload(portnum: int, **fields) -> bytes:
         nodeinfo = mesh_pb2.User(
