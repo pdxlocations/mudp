@@ -5,6 +5,7 @@ from typing import Optional
 import threading
 import select
 from google.protobuf.message import DecodeError
+from google.protobuf.unknown_fields import UnknownFieldSet
 from pubsub import pub
 
 from meshtastic import protocols
@@ -15,7 +16,7 @@ from mudp.encryption import decrypt_packet
 
 
 def _decode_and_optionally_parse(
-    raw: bytes, key: Optional[bytes] = None, *, parse_payload: bool = True
+    raw: bytes, key: Optional[bytes] = None, *, parse_payload: bool = False
 ) -> Optional[mesh_pb2.MeshPacket]:
     try:
         mp = mesh_pb2.MeshPacket()
@@ -27,7 +28,14 @@ def _decode_and_optionally_parse(
                 mp.decoded.CopyFrom(decoded)
             # else: keep the encrypted packet as-is
 
-        if parse_payload and mp.HasField("decoded"):
+        # UDP authentication flags are claims, not locally verified evidence.
+        if "xeddsa_signed" in mp.DESCRIPTOR.fields_by_name:
+            mp.xeddsa_signed = False
+        signed_payload = mp.HasField("decoded") and (
+            bool(getattr(mp.decoded, "xeddsa_signature", b""))
+            or any(field.field_number == 10 for field in UnknownFieldSet(mp.decoded))
+        )
+        if parse_payload and mp.HasField("decoded") and not signed_payload:
             portnum = mp.decoded.portnum
             handler = protocols.get(portnum) if portnum is not None else None
             if handler is not None and handler.protobufFactory is not None:
@@ -62,7 +70,7 @@ class UDPPacketStream:
         mcast_port: int,
         key: Optional[bytes] = None,
         recv_buf: int = 65535,
-        parse_payload: bool = True,
+        parse_payload: bool = False,
         select_timeout: float = 0.2,
         dedupe_ttl_sec: float = 60.0,
         dedupe_max_entries: int = 4096,
@@ -187,7 +195,7 @@ class UDPPacketStream:
             return
         if not getattr(packet, "rx_time", 0):
             packet.rx_time = int(time.time())
-        if not getattr(packet, "transport_mechanism", 0):
+        if "transport_mechanism" in packet.DESCRIPTOR.fields_by_name and not packet.transport_mechanism:
             packet.transport_mechanism = mesh_pb2.MeshPacket.TransportMechanism.TRANSPORT_MULTICAST_UDP
 
         pub.sendMessage("mesh.rx.packet", packet=packet, addr=addr)

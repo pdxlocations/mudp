@@ -52,7 +52,7 @@ def build_empty_ack_packet(*, from_id: int = 1234, packet_id: int = 5678, reques
 class UDPPacketStreamTests(unittest.TestCase):
     def setUp(self) -> None:
         self.stream = UDPPacketStream(
-            "224.0.0.69",
+            "239.0.0.69",
             4403,
             parse_payload=False,
             dedupe_ttl_sec=10.0,
@@ -148,12 +148,39 @@ class UDPPacketStreamTests(unittest.TestCase):
             mock.patch("mudp.connection.socket.socket", return_value=fake_socket),
             mock.patch("mudp.connection.sys.platform", "linux"),
         ):
-            conn.setup_multicast("224.0.0.69", 4403, bind_mode="auto")
+            conn.setup_multicast("239.0.0.69", 4403, bind_mode="auto")
 
-        self.assertEqual(fake_socket.bind.call_args_list[0].args[0], ("224.0.0.69", 4403))
+        self.assertEqual(fake_socket.bind.call_args_list[0].args[0], ("239.0.0.69", 4403))
         self.assertEqual(fake_socket.bind.call_args_list[1].args[0], ("", 4403))
         self.assertIs(conn.socket, fake_socket)
         self.assertIs(conn.sock, fake_socket)
+
+
+
+class SignedPayloadTests(unittest.TestCase):
+    def test_default_preserves_binary_user(self):
+        from mudp.rx_message_handler import _decode_and_optionally_parse
+        packet = build_text_packet()
+        packet.decoded.portnum = portnums_pb2.PortNum.NODEINFO_APP
+        payload = mesh_pb2.User(long_name='Test', macaddr=bytes(6)).SerializeToString()
+        packet.decoded.payload = payload
+        result = _decode_and_optionally_parse(packet.SerializeToString())
+        self.assertEqual(result.decoded.payload, payload)
+
+    def test_legacy_display_mode_preserves_signed_bytes_and_clears_udp_claim(self):
+        from mudp.rx_message_handler import _decode_and_optionally_parse
+        packet = build_text_packet()
+        packet.decoded.portnum = portnums_pb2.PortNum.NODEINFO_APP
+        payload = mesh_pb2.User(long_name='Test', macaddr=bytes(6)).SerializeToString()
+        packet.decoded.payload = payload
+        signature = b's' * 64
+        packet.decoded.MergeFromString(b'\x52\x40' + signature)
+        before = packet.decoded.SerializeToString()
+        if 'xeddsa_signed' in packet.DESCRIPTOR.fields_by_name:
+            packet.xeddsa_signed = True
+        result = _decode_and_optionally_parse(packet.SerializeToString(), parse_payload=True)
+        self.assertEqual(result.decoded.SerializeToString(), before)
+        self.assertFalse(getattr(result, 'xeddsa_signed', False))
 
 
 if __name__ == "__main__":

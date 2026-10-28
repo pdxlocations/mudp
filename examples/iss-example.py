@@ -1,3 +1,9 @@
+"""Unsigned low-level UDP transport demo.
+
+Arbitrary test IDs in this example are not authenticated Meshtastic 2.8
+identities. Strict receivers reject unsigned traffic. For signed broadcasts
+and PKI direct messages use vnode, as shown in reply-bot-example.py.
+"""
 import math
 import time
 import requests
@@ -11,8 +17,6 @@ def setup():
     node.node_id = "!b155b155"
     node.long_name = "ISS"
     node.short_name = "🛰"
-    # meshtastic <2.8
-    # MCAST_GRP = "224.0.0.69"
     MCAST_GRP = "239.0.0.69"
     MCAST_PORT = 4403
     conn.setup_multicast(MCAST_GRP, MCAST_PORT)

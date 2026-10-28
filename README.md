@@ -56,7 +56,29 @@ Current behavior:
 - ACK and NAK handling uses `ROUTING_APP` packets
 - duplicate classification happens at the listener level using a TTL-backed `(from, id)` cache
 
-# Send Functions (see examples for further information):
+# Meshtastic 2.8 examples
+
+The low-level send helpers below create **unsigned channel-encrypted packets**;
+they do not derive a key-based node ID, sign broadcasts, or perform PKI DM
+encryption. The hello-world and ISS scripts are unsigned transport demos and
+may be rejected by Strict receivers. Setting `pki_encrypted=True` is only a
+packet flag; it does not perform PKI encryption.
+
+For an authenticated 2.8 identity, install the optional `vnode>=0.1.11` runtime:
+
+```python
+from vnode import VirtualNode
+
+node = VirtualNode("node.json")  # Persists a key; derives the node ID from it.
+node.send_nodeinfo()            # Signed nodeinfo, including the fixed MAC field.
+```
+
+`examples/reply-bot-example.py` uses vnode to listen for direct text messages and
+reply to their sender with automatic PKI selection. Configure `node.json` with
+the desired channel and multicast address. vnode remains an optional example
+dependency, not a mudp runtime dependency.
+
+# Low-level unsigned send functions
 
 ```python
 from mudp import (
@@ -74,8 +96,6 @@ from mudp import (
     send_data,
 )
 
-# meshtastic <2.8
-# MCAST_GRP = "224.0.0.69"
 MCAST_GRP = "239.0.0.69"
 MCAST_PORT = 4403
 
@@ -218,3 +238,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
+
+## Signed packets
+
+`UDPPacketStream` preserves binary protobuf payloads by default. Use
+`parse_payload=True` only for legacy display formatting of unsigned payloads;
+signed payloads remain unchanged even in that mode. Neither parsing nor receipt
+of a signature verifies it. UDP-supplied `xeddsa_signed` flags are cleared.
